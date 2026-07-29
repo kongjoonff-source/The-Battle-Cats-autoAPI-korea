@@ -1,37 +1,229 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관리자 로그인 - 냥코통조림충전소</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🔒 관리자 로그인 — 냥코 충전소</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05060f;
+  --card:rgba(18,20,38,0.72);
+  --primary:#7c3aed;
+  --primary2:#a855f7;
+  --primary3:#c084fc;
+  --cyan:#06b6d4;
+  --pink:#ec4899;
+  --danger:#ef4444;
+  --text:#f1f5f9;
+  --sub:#94a3b8;
+  --border:rgba(168,85,247,0.18);
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 30%,rgba(6,182,212,0.14) 0%,transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 90%,rgba(236,72,153,0.12) 0%,transparent 55%);
+  pointer-events:none;z-index:0;
+  animation:auroraShift 18s ease-in-out infinite alternate;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(168,85,247,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(168,85,247,0.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+  mask-image:radial-gradient(ellipse at center,black 30%,transparent 75%);
+}
+@keyframes auroraShift{
+  0%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(-3%,2%) scale(1.05)}
+  100%{transform:translate(2%,-2%) scale(1.02)}
+}
+
+.login-container{
+  position:relative;z-index:1;
+  max-width:440px;width:90%;
+  padding:20px;
+}
+
+.login-card{
+  background:var(--card);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border-radius:28px;
+  padding:40px 30px;
+  border:1px solid var(--border);
+  box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(124,58,237,0.15);
+  position:relative;
+  overflow:hidden;
+}
+.login-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--primary3),var(--cyan),var(--pink),transparent);
+  animation:gradientFlow 4s ease infinite;
+}
+@keyframes gradientFlow{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+
+.login-icon{
+  font-size:3.5rem;
+  text-align:center;
+  margin-bottom:16px;
+  display:inline-block;
+  animation:iconFloat 3s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(168,85,247,0.6));
+}
+@keyframes iconFloat{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-8px) rotate(5deg)}
+}
+
+.login-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:1.4rem;font-weight:900;
+  text-align:center;
+  background:linear-gradient(135deg,var(--primary3),var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 200%;
+  animation:gradientFlow 5s ease infinite;
+  margin-bottom:8px;
+  letter-spacing:1px;
+}
+.login-subtitle{
+  text-align:center;
+  color:var(--sub);
+  font-size:.82rem;
+  margin-bottom:28px;
+}
+
+.error-box{
+  display:none;
+  background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.06));
+  border:1.5px solid rgba(239,68,68,0.3);
+  border-radius:12px;
+  padding:12px 16px;
+  margin-bottom:16px;
+  font-size:.82rem;
+  color:var(--danger);
+  text-align:center;
+}
+.error-box.show{display:block;animation:shake .4s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-8px)}
+  75%{transform:translateX(8px)}
+}
+
+.input-wrap{position:relative;margin-bottom:16px}
+input{
+  width:100%;
+  padding:16px 18px 16px 50px;
+  border-radius:14px;
+  border:1.5px solid var(--border);
+  background:rgba(255,255,255,0.03);
+  color:var(--text);
+  outline:none;
+  font-size:1rem;
+  font-family:inherit;
+  transition:all .3s;
+}
+input::placeholder{color:var(--sub);font-size:.85rem}
+input:focus{
+  border-color:var(--primary2);
+  box-shadow:0 0 0 4px rgba(168,85,247,0.12),0 0 24px rgba(168,85,247,0.2);
+  background:rgba(168,85,247,0.04);
+}
+.input-icon{
+  position:absolute;left:18px;top:50%;transform:translateY(-50%);
+  color:var(--sub);font-size:1.1rem;
+  transition:color .3s;
+}
+input:focus + .input-icon{color:var(--primary3)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:16px 20px;border-radius:14px;border:none;
+  font-size:.95rem;font-weight:800;cursor:pointer;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  width:100%;font-family:inherit;
+  position:relative;overflow:hidden;
+  text-transform:uppercase;letter-spacing:1px;
+}
+.btn:active{transform:scale(.95)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  color:#fff;
+  box-shadow:0 4px 20px rgba(124,58,237,0.4);
+}
+.btn-primary:hover{
+  box-shadow:0 8px 30px rgba(124,58,237,0.6),0 0 40px rgba(168,85,247,0.3);
+  transform:translateY(-2px);
+}
+
+.login-footer{
+  text-align:center;
+  margin-top:24px;
+  font-size:.72rem;
+  color:var(--sub);
+}
+.login-footer a{
+  color:var(--primary3);
+  text-decoration:none;
+  transition:color .2s;
+}
+.login-footer a:hover{color:var(--cyan)}
+</style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>🔒 관리자 로그인</h1>
-                <p>냥코통조림충전소 관리자 패널</p>
-            </div>
 
-            {% if error %}
-            <div class="result-box error">
-                <p>❌ {{ error }}</p>
-            </div>
-            {% endif %}
-
-            <form method="POST" class="login-form">
-                <div class="form-group">
-                    <label for="password">관리자 비밀번호</label>
-                    <input type="password" id="password" name="password" required placeholder="비밀번호를 입력하세요">
-                </div>
-                <button type="submit" class="submit-btn">로그인</button>
-            </form>
-
-            <div class="login-footer">
-                <a href="/">← 고객 페이지로 이동</a>
-            </div>
-        </div>
+<div class="login-container">
+  <div class="login-card">
+    <div style="text-align:center;">
+      <span class="login-icon">🔒</span>
     </div>
+    <h1 class="login-title">ADMIN LOGIN</h1>
+    <p class="login-subtitle">냥코 충전소 관리자 패널</p>
+
+    {% if error %}
+    <div class="error-box show">
+      <i class="fas fa-exclamation-circle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/admin">
+      <div class="input-wrap">
+        <input type="password" name="password" placeholder="관리자 비밀번호" required autofocus>
+        <i class="fas fa-shield-halved input-icon"></i>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-unlock"></i> 로그인
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <a href="/gate"><i class="fas fa-arrow-left"></i> 키 입력으로</a>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

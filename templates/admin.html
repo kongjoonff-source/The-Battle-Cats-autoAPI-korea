@@ -1,454 +1,529 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관리자 패널 - 냥코통조림충전소</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🔑 관리자 패널 — 냥코 충전소</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05060f;
+  --bg2:#0a0c1c;
+  --card:rgba(18,20,38,0.72);
+  --card2:rgba(28,30,56,0.6);
+  --primary:#7c3aed;
+  --primary2:#a855f7;
+  --primary3:#c084fc;
+  --cyan:#06b6d4;
+  --pink:#ec4899;
+  --accent:#fbbf24;
+  --accent2:#f59e0b;
+  --success:#10b981;
+  --success2:#34d399;
+  --danger:#ef4444;
+  --danger2:#f87171;
+  --text:#f1f5f9;
+  --sub:#94a3b8;
+  --border:rgba(168,85,247,0.18);
+  --glow:0 0 24px rgba(168,85,247,0.35);
+  --radius:18px;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  padding-bottom:60px;
+  position:relative;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 30%,rgba(6,182,212,0.14) 0%,transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 90%,rgba(236,72,153,0.12) 0%,transparent 55%);
+  pointer-events:none;z-index:0;
+  animation:auroraShift 18s ease-in-out infinite alternate;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(168,85,247,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(168,85,247,0.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+  mask-image:radial-gradient(ellipse at center,black 30%,transparent 75%);
+}
+@keyframes auroraShift{
+  0%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(-3%,2%) scale(1.05)}
+  100%{transform:translate(2%,-2%) scale(1.02)}
+}
+
+.container{max-width:980px;margin:0 auto;padding:14px 12px;position:relative;z-index:1}
+
+/* ===== HEADER ===== */
+.header{
+  position:sticky;top:0;
+  background:rgba(5,6,15,0.78);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  padding:12px 18px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--border);
+  z-index:100;
+  box-shadow:0 4px 30px rgba(0,0,0,0.3);
+}
+.logo{
+  font-family:'Orbitron',sans-serif;
+  font-size:1.25rem;font-weight:900;
+  background:linear-gradient(135deg,var(--primary3),var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 200%;
+  display:flex;align-items:center;gap:8px;
+  animation:gradientFlow 6s ease infinite;
+  letter-spacing:.5px;
+}
+@keyframes gradientFlow{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+.logo-icon{
+  font-size:1.5rem;-webkit-text-fill-color:initial;
+  display:inline-block;
+  animation:catBounce 2.4s ease-in-out infinite;
+  filter:drop-shadow(0 0 8px rgba(251,191,36,0.6));
+}
+@keyframes catBounce{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  25%{transform:translateY(-4px) rotate(-8deg)}
+  75%{transform:translateY(-2px) rotate(8deg)}
+}
+.header-right{display:flex;align-items:center;gap:10px}
+.badge{
+  background:linear-gradient(135deg,rgba(124,58,237,0.25),rgba(6,182,212,0.2));
+  border:1px solid rgba(168,85,247,0.35);
+  padding:4px 12px;border-radius:20px;
+  font-size:.62rem;font-weight:800;color:var(--primary3);
+  font-family:'Orbitron',sans-serif;
+  box-shadow:0 0 12px rgba(168,85,247,0.25);
+  letter-spacing:1px;
+}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--success2);
+  box-shadow:0 0 10px var(--success2);
+  animation:pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.5;transform:scale(1.3)}
+}
+.logout-btn{
+  background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.05));
+  border:1px solid rgba(239,68,68,0.3);
+  color:var(--danger2);
+  padding:6px 14px;border-radius:10px;
+  font-size:.78rem;font-weight:700;cursor:pointer;
+  text-decoration:none;transition:all .2s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.logout-btn:hover{
+  background:linear-gradient(135deg,rgba(239,68,68,0.3),rgba(239,68,68,0.1));
+  box-shadow:0 0 16px rgba(239,68,68,0.3);
+}
+
+/* ===== HERO ===== */
+.hero{
+  position:relative;
+  background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(6,182,212,0.08),rgba(236,72,153,0.1));
+  border-radius:24px;
+  padding:32px 20px;text-align:center;
+  margin-bottom:16px;
+  border:1px solid rgba(168,85,247,0.2);
+  overflow:hidden;
+  box-shadow:0 8px 40px rgba(124,58,237,0.15);
+}
+.hero::before{
+  content:'';position:absolute;inset:-2px;
+  background:conic-gradient(from 0deg,var(--primary),var(--cyan),var(--pink),var(--primary));
+  border-radius:24px;z-index:-1;
+  animation:rotate 8s linear infinite;
+  opacity:.3;
+  filter:blur(20px);
+}
+@keyframes rotate{to{transform:rotate(360deg)}}
+.hero h1{
+  font-family:'Orbitron',sans-serif;
+  font-size:1.5rem;font-weight:900;
+  background:linear-gradient(135deg,var(--primary3),var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 200%;
+  animation:gradientFlow 5s ease infinite;
+  letter-spacing:1px;
+}
+.hero p{
+  color:var(--sub);font-size:.82rem;margin-top:8px;
+}
+
+/* ===== CARD ===== */
+.card{
+  background:var(--card);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-radius:var(--radius);
+  padding:20px 18px;
+  margin-bottom:14px;
+  border:1px solid var(--border);
+  transition:all .3s cubic-bezier(.4,0,.2,1);
+  position:relative;
+  overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(168,85,247,0.5),transparent);
+}
+.card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(168,85,247,0.35);
+  box-shadow:0 12px 40px rgba(124,58,237,0.18);
+}
+.card-title{
+  font-size:1.05rem;font-weight:800;
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:10px;
+  color:var(--text);
+}
+.card-title i{
+  color:var(--primary3);
+  filter:drop-shadow(0 0 6px rgba(168,85,247,0.5));
+}
+
+/* ===== KEY GENERATE BOX ===== */
+.key-gen-box{
+  background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(6,182,212,0.04));
+  border:1px solid rgba(168,85,247,0.2);
+  border-radius:14px;
+  padding:18px;
+  margin-bottom:16px;
+}
+.key-gen-title{
+  font-size:.9rem;font-weight:800;
+  color:var(--primary3);
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.key-gen-grid{
+  display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;
+}
+.key-gen-field{display:flex;flex-direction:column;gap:4px;}
+.key-gen-field label{
+  font-size:.72rem;color:var(--sub);font-weight:600;
+}
+.key-gen-field input{
+  padding:10px 14px;
+  border-radius:10px;
+  border:1.5px solid var(--border);
+  background:rgba(255,255,255,0.03);
+  color:var(--text);
+  font-size:.85rem;
+  font-family:inherit;
+  outline:none;
+  transition:all .3s;
+}
+.key-gen-field input:focus{
+  border-color:var(--primary2);
+  box-shadow:0 0 0 3px rgba(168,85,247,0.12);
+}
+.btn-gen{
+  padding:11px 20px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  color:#fff;font-weight:800;cursor:pointer;
+  font-size:.85rem;transition:all .25s;
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:inherit;
+}
+.btn-gen:hover{
+  box-shadow:0 8px 24px rgba(124,58,237,0.5);
+  transform:translateY(-2px);
+}
+.btn-gen:active{transform:scale(.95)}
+
+/* ===== TABLE ===== */
+.table-container{overflow-x:auto;border-radius:12px;}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+thead tr{background:rgba(168,85,247,0.08);}
+th{
+  padding:12px 14px;text-align:left;
+  font-weight:800;color:var(--primary3);
+  font-size:.72rem;text-transform:uppercase;letter-spacing:1px;
+  border-bottom:1px solid var(--border);
+}
+td{
+  padding:12px 14px;
+  border-bottom:1px solid rgba(168,85,247,0.08);
+  color:var(--text);
+}
+tbody tr{transition:all .2s;}
+tbody tr:hover{background:rgba(168,85,247,0.04);}
+.code-text{
+  font-family:'Orbitron',sans-serif;
+  font-size:.75rem;
+  word-break:break-all;
+  color:var(--success2);
+}
+.small{font-size:.72rem;color:var(--sub);}
+
+/* ===== BADGES ===== */
+.tag{
+  display:inline-block;
+  padding:3px 10px;border-radius:8px;
+  font-size:.7rem;font-weight:800;
+}
+.tag-success{
+  background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(52,211,153,0.08));
+  border:1px solid rgba(16,185,129,0.25);
+  color:var(--success2);
+}
+.tag-error{
+  background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.08));
+  border:1px solid rgba(239,68,68,0.25);
+  color:var(--danger2);
+}
+
+/* ===== ACTION BUTTONS ===== */
+.btn-action{
+  padding:5px 12px;border-radius:8px;
+  font-size:.72rem;font-weight:700;cursor:pointer;
+  transition:all .2s;border:1px solid;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.btn-copy{
+  background:rgba(168,85,247,0.1);
+  border-color:rgba(168,85,247,0.2);
+  color:var(--primary3);
+}
+.btn-copy:hover{
+  background:rgba(168,85,247,0.2);
+  box-shadow:0 0 12px rgba(168,85,247,0.3);
+}
+.btn-del{
+  background:rgba(239,68,68,0.1);
+  border-color:rgba(239,68,68,0.2);
+  color:var(--danger2);
+}
+.btn-del:hover{
+  background:rgba(239,68,68,0.2);
+  box-shadow:0 0 12px rgba(239,68,68,0.3);
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state{
+  text-align:center;padding:40px 20px;
+  color:var(--sub);font-size:.85rem;
+}
+.empty-state i{font-size:2rem;margin-bottom:10px;display:block;color:var(--border);}
+
+/* ===== SPINNER ===== */
+.spinner{
+  display:inline-block;width:16px;height:16px;
+  border:2.5px solid rgba(255,255,255,.15);
+  border-top-color:var(--primary3);
+  border-right-color:var(--cyan);
+  border-radius:50%;
+  animation:spin .7s linear;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  .container{padding:10px 8px}
+  .card{padding:16px 12px}
+  .hero{padding:24px 14px}
+  .hero h1{font-size:1.2rem}
+  .logo{font-size:1.05rem}
+  .key-gen-grid{flex-direction:column;align-items:stretch;}
+  .key-gen-field input{width:100%;}
+  .btn-gen{width:100%;justify-content:center;}
+}
+</style>
 </head>
 <body>
-    <!-- 헤더 -->
-    <header class="header">
-        <div class="container">
-            <div class="logo">🐱 냥코통조림충전소 관리자 패널</div>
-            <div class="admin-nav">
-                <a href="#orders">구매내역</a>
-                <a href="#deposits">입금내역</a>
-                <a href="#prices">가격설정</a>
-                <a href="/admin/data" target="_blank">데이터 내보내기</a>
-                <a href="/admin/logout">로그아웃</a>
-            </div>
+
+<header class="header">
+  <div class="logo"><span class="logo-icon">🐱</span> NYANKO ADMIN</div>
+  <div class="header-right">
+    <span class="status-dot"></span>
+    <span class="badge">KEY MANAGER</span>
+    <a href="/admin/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 로그아웃</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>🔑 접근 키 관리</h1>
+    <p>사이트 접근 키를 생성하고 관리합니다</p>
+  </div>
+
+  <!-- 키 생성 -->
+  <div class="card">
+    <div class="card-title"><i class="fas fa-plus-circle"></i>새 키 생성</div>
+    <div class="key-gen-box">
+      <div class="key-gen-grid">
+        <div class="key-gen-field">
+          <label>라벨 (선택)</label>
+          <input type="text" id="keyLabel" placeholder="예: 친구1" style="width:160px;">
         </div>
-    </header>
-
-    <div class="container">
-        <!-- 통계 -->
-        <section class="stats-section">
-            <h3>📊 오늘의 통계</h3>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">{{ total_orders }}</div>
-                    <div class="stat-label">총 주문</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-value">{{ completed_orders }}</div>
-                    <div class="stat-label">완료</div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-value">{{ pending_orders }}</div>
-                    <div class="stat-label">대기중</div>
-                </div>
-                <div class="stat-card error">
-                    <div class="stat-value">{{ failed_orders }}</div>
-                    <div class="stat-label">실패</div>
-                </div>
-                <div class="stat-card revenue">
-                    <div class="stat-value">{{ total_revenue }}원</div>
-                    <div class="stat-label">총 수익</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 접근 키 관리 -->
-        <section id="keys" class="admin-section">
-            <h3>🔑 접근 키 관리</h3>
-            <div style="margin-bottom:20px;padding:16px;background:rgba(168,85,247,0.06);border-radius:12px;border:1px solid rgba(168,85,247,0.2);">
-                <h4 style="margin-bottom:12px;color:#c084fc;">✨ 새 키 생성</h4>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
-                    <div>
-                        <label style="font-size:.75rem;color:#94a3b8;display:block;margin-bottom:4px;">라벨 (선택)</label>
-                        <input type="text" id="keyLabel" placeholder="예: 친구1" style="width:150px;padding:8px 12px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);background:rgba(255,255,255,0.03);color:#f1f5f9;font-size:.85rem;">
-                    </div>
-                    <div>
-                        <label style="font-size:.75rem;color:#94a3b8;display:block;margin-bottom:4px;">만료일 (일)</label>
-                        <input type="number" id="keyDays" value="1" min="0" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);background:rgba(255,255,255,0.03);color:#f1f5f9;font-size:.85rem;">
-                    </div>
-                    <div>
-                        <label style="font-size:.75rem;color:#94a3b8;display:block;margin-bottom:4px;">추가 시간 (시)</label>
-                        <input type="number" id="keyHours" value="0" min="0" max="23" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);background:rgba(255,255,255,0.03);color:#f1f5f9;font-size:.85rem;">
-                    </div>
-                    <button onclick="generateKey()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;cursor:pointer;font-size:.85rem;transition:all .2s;">
-                        <i class="fas fa-plus"></i> 키 생성
-                    </button>
-                </div>
-                <p style="font-size:.72rem;color:#94a3b8;margin-top:8px;">※ 일수+시간으로 만료기간 설정 (예: 1일 0시간 = 24시간 후 만료)</p>
-            </div>
-
-            <div class="table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>키</th>
-                            <th>라벨</th>
-                            <th>생성일</th>
-                            <th>만료일</th>
-                            <th>상태</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="keyList">
-                        {% for k in access_keys %}
-                        <tr>
-                            <td><code style="font-size:.75rem;word-break:break-all;">{{ k.key }}</code></td>
-                            <td>{{ k.label or '-' }}</td>
-                            <td class="small">{{ k.created_at[:19].replace('T',' ') }}</td>
-                            <td class="small">{{ k.expires_at[:19].replace('T',' ') }}</td>
-                            <td>
-                                {% if k.is_expired %}
-                                <span class="badge error">만료됨</span>
-                                {% else %}
-                                <span class="badge success">유효</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <button onclick="copyKey('{{ k.key }}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(168,85,247,0.2);background:rgba(168,85,247,0.1);color:#c084fc;cursor:pointer;font-size:.75rem;">복사</button>
-                                <button onclick="deleteKey('{{ k.key }}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.1);color:#ef4444;cursor:pointer;font-size:.75rem;">삭제</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% if not access_keys %}
-                        <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px;">생성된 키가 없습니다</td></tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- 가격 설정 -->
-        <section id="prices" class="admin-section">
-            <h3>💰 가격 설정</h3>
-            <div class="price-editor">
-                <table class="price-table">
-                    <thead>
-                        <tr>
-                            <th>수량</th>
-                            <th>가격 (원)</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="price-list">
-                        {% for key, price in prices.items() %}
-                        <tr data-key="{{ key }}">
-                            <td>{{ key }}개</td>
-                            <td><input type="number" class="price-input" data-key="{{ key }}" value="{{ price }}" min="100"></td>
-                            <td><button class="save-price-btn" data-key="{{ key }}">저장</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <button class="submit-btn" id="save-all-prices" style="margin-top: 15px;">전체 가격 저장</button>
-            </div>
-        </section>
-
-        <!-- 구매내역 -->
-        <section id="orders" class="admin-section">
-            <h3>� 구매내역</h3>
-            <div class="table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>주문번호</th>
-                            <th>입금자명</th>
-                            <th>수량</th>
-                            <th>가격</th>
-                            <th>상태</th>
-                            <th>결과</th>
-                            <th>생성일</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td><code>{{ order.id }}</code></td>
-                            <td>{{ order.buyer_name }}</td>
-                            <td>{{ order.amount }}개</td>
-                            <td>{{ order.price }}원</td>
-                            <td>
-                                {% if order.status == 'completed' %}
-                                <span class="badge success">완료</span>
-                                {% elif order.status == 'pending' %}
-                                <span class="badge warning">대기중</span>
-                                {% elif order.status == 'processing' %}
-                                <span class="badge processing">처리중</span>
-                                {% else %}
-                                <span class="badge error">실패</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if order.result %}
-                                    {% if order.result.success %}
-                                    <span class="small">✅ 완료</span>
-                                    {% else %}
-                                    <span class="small error">{{ order.result.error }}</span>
-                                    {% endif %}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                            <td class="small">{{ order.created_at }}</td>
-                            <td>
-                                {% if order.status == 'pending' %}
-                                <button class="manual-deposit-btn" data-buyer="{{ order.buyer_name }}" data-price="{{ order.price }}">입금확인</button>
-                                {% endif %}
-                                {% if order.result and order.result.success %}
-                                <button class="copy-code-btn" data-transfer="{{ order.result.new_transfer_code }}" data-confirm="{{ order.result.new_confirmation_code }}">복사</button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- 입금내역 -->
-        <section id="deposits" class="admin-section">
-            <h3>🏦 입금내역</h3>
-            <div class="table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>입금번호</th>
-                            <th>입금자명</th>
-                            <th>주문번호</th>
-                            <th>금액</th>
-                            <th>시간</th>
-                            <th>방법</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for deposit in deposits %}
-                        <tr>
-                            <td><code>{{ deposit.id }}</code></td>
-                            <td>{{ deposit.buyer_name }}</td>
-                            <td><code>{{ deposit.order_id }}</code></td>
-                            <td>{{ deposit.amount }}원</td>
-                            <td class="small">{{ deposit.timestamp }}</td>
-                            <td>
-                                {% if deposit.manual %}
-                                <span class="badge">수동</span>
-                                {% else %}
-                                <span class="badge success">자동</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- 지급 안 된 내역 -->
-        <section id="failed" class="admin-section">
-            <h3>⚠️ 지급 안 된 내역</h3>
-            <div class="table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>주문번호</th>
-                            <th>입금자명</th>
-                            <th>오류</th>
-                            <th>시간</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders if order.status == 'failed' %}
-                        <tr>
-                            <td><code>{{ order.id }}</code></td>
-                            <td>{{ order.buyer_name }}</td>
-                            <td class="error">{{ order.result.error if order.result else '알 수 없음' }}</td>
-                            <td class="small">{{ order.completed_at if order.completed_at else order.created_at }}</td>
-                            <td>
-                                <button class="retry-btn" data-order-id="{{ order.id }}">재시도</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
+        <div class="key-gen-field">
+          <label>만료일 (일)</label>
+          <input type="number" id="keyDays" value="1" min="0" style="width:90px;">
+        </div>
+        <div class="key-gen-field">
+          <label>추가 시간 (시)</label>
+          <input type="number" id="keyHours" value="0" min="0" max="23" style="width:90px;">
+        </div>
+        <button class="btn-gen" onclick="generateKey()" id="genBtn">
+          <i class="fas fa-magic"></i> 키 생성
+        </button>
+      </div>
+      <p style="font-size:.72rem;color:var(--sub);margin-top:10px;">※ 일수+시간으로 만료기간 설정 (예: 1일 0시간 = 24시간 후 만료)</p>
     </div>
+  </div>
 
-    <!-- 푸터 -->
-    <footer class="footer">
-        <div class="container">
-            <p>© 2024 냥코통조림충전소 관리자 패널</p>
-        </div>
-    </footer>
+  <!-- 키 목록 -->
+  <div class="card">
+    <div class="card-title"><i class="fas fa-key"></i>발급된 키 목록</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>키</th>
+            <th>라벨</th>
+            <th>생성일</th>
+            <th>만료일</th>
+            <th>상태</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="keyList">
+          {% for k in access_keys %}
+          <tr>
+            <td><span class="code-text">{{ k.key }}</span></td>
+            <td>{{ k.label or '-' }}</td>
+            <td class="small">{{ k.created_at[:19].replace('T',' ') }}</td>
+            <td class="small">{{ k.expires_at[:19].replace('T',' ') }}</td>
+            <td>
+              {% if k.is_expired %}
+              <span class="tag tag-error">만료됨</span>
+              {% else %}
+              <span class="tag tag-success">유효</span>
+              {% endif %}
+            </td>
+            <td>
+              <button class="btn-action btn-copy" onclick="copyKey('{{ k.key }}')">
+                <i class="fas fa-copy"></i> 복사
+              </button>
+              <button class="btn-action btn-del" onclick="deleteKey('{{ k.key }}')">
+                <i class="fas fa-trash"></i> 삭제
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not access_keys %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <i class="fas fa-key"></i>
+                생성된 키가 없습니다<br>
+                위에서 새 키를 생성해주세요
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-    <script>
-        // 가격 저장
-        document.querySelectorAll('.save-price-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const key = this.dataset.key;
-                const input = document.querySelector(`.price-input[data-key="${key}"]`);
-                const price = input.value;
+</div>
 
-                const prices = {};
-                document.querySelectorAll('.price-input').forEach(inp => {
-                    prices[inp.dataset.key] = parseInt(inp.value);
-                });
+<script>
+  async function generateKey() {
+    const label = document.getElementById('keyLabel').value;
+    const days = document.getElementById('keyDays').value;
+    const hours = document.getElementById('keyHours').value;
+    const btn = document.getElementById('genBtn');
 
-                try {
-                    const response = await fetch('/admin/update-prices', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({prices: prices})
-                    });
-                    const result = await response.json();
-                    if (response.ok) {
-                        alert('가격이 저장되었습니다');
-                    } else {
-                        alert('저장 실패: ' + result.error);
-                    }
-                } catch (e) {
-                    alert('오류: ' + e.message);
-                }
-            });
-        });
+    if (!days && !hours) {
+      alert('만료 기간을 입력해주세요 (최소 1일 또는 1시간)');
+      return;
+    }
 
-        // 전체 가격 저장
-        document.getElementById('save-all-prices').addEventListener('click', async function() {
-            const prices = {};
-            document.querySelectorAll('.price-input').forEach(inp => {
-                prices[inp.dataset.key] = parseInt(inp.value);
-            });
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 생성 중...';
 
-            try {
-                const response = await fetch('/admin/update-prices', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({prices: prices})
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    alert('전체 가격이 저장되었습니다');
-                } else {
-                    alert('저장 실패: ' + result.error);
-                }
-            } catch (e) {
-                alert('오류: ' + e.message);
-            }
-        });
+    try {
+      const res = await fetch('/api/admin/keys/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          label: label,
+          days: parseInt(days) || 0,
+          hours: parseInt(hours) || 0
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const k = data.key;
+        alert('키가 생성되었습니다!\n\n키: ' + k.key + '\n만료: ' + k.expires_at + '\n\n복사해서 전달하세요.');
+        navigator.clipboard.writeText(k.key).then(() => {
+          console.log('키 클립보드 복사됨');
+        }).catch(() => {});
+        location.reload();
+      } else {
+        alert('생성 실패: ' + (data.error || '알 수 없는 오류'));
+      }
+    } catch (e) {
+      alert('오류: ' + e.message);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-magic"></i> 키 생성';
+  }
 
-        // 수동 입금 확인
-        document.querySelectorAll('.manual-deposit-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const buyer = this.dataset.buyer;
-                const price = this.dataset.price;
+  function copyKey(key) {
+    navigator.clipboard.writeText(key).then(() => {
+      alert('키가 복사되었습니다:\n' + key);
+    }).catch(() => {
+      prompt('아래 키를 복사하세요:', key);
+    });
+  }
 
-                if (confirm(`${buyer}님의 ${price}원 입금을 확인하시겠습니까?`)) {
-                    try {
-                        const response = await fetch('/admin/manual-deposit', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                buyer_name: buyer,
-                                deposit_amount: parseInt(price)
-                            })
-                        });
-                        const result = await response.json();
-                        if (response.ok) {
-                            alert('입금 확인 및 충전 시작');
-                            location.reload();
-                        } else {
-                            alert('실패: ' + result.error);
-                        }
-                    } catch (e) {
-                        alert('오류: ' + e.message);
-                    }
-                }
-            });
-        });
-
-        // 코드 복사
-        document.querySelectorAll('.copy-code-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const transfer = this.dataset.transfer;
-                const confirm = this.dataset.confirm;
-                const text = `전송코드: ${transfer}\n인증번호: ${confirm}`;
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('복사되었습니다:\n' + text);
-                });
-            });
-        });
-
-        // 재시도
-        document.querySelectorAll('.retry-btn').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const orderId = this.dataset.orderId;
-                if (confirm('재시도하시겠습니까?')) {
-                    // 재시도 로직 - 여기서는 페이지 새로고침
-                    alert('재시도 기능은 추후 업데이트 예정입니다.');
-                }
-            });
-        });
-
-        // ===== 접근 키 관리 =====
-        async function generateKey() {
-            const label = document.getElementById('keyLabel').value;
-            const days = document.getElementById('keyDays').value;
-            const hours = document.getElementById('keyHours').value;
-
-            if (!days && !hours) {
-                alert('만료 기간을 입력해주세요 (최소 1일 또는 1시간)');
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/admin/keys/generate', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        label: label,
-                        days: parseInt(days) || 0,
-                        hours: parseInt(hours) || 0
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    const k = data.key;
-                    alert('키가 생성되었습니다!\n\n키: ' + k.key + '\n만료: ' + k.expires_at + '\n\n복사해서 전달하세요.');
-                    navigator.clipboard.writeText(k.key).then(() => {
-                        console.log('키 클립보드 복사됨');
-                    }).catch(() => {});
-                    location.reload();
-                } else {
-                    alert('생성 실패: ' + (data.error || '알 수 없는 오류'));
-                }
-            } catch (e) {
-                alert('오류: ' + e.message);
-            }
-        }
-
-        function copyKey(key) {
-            navigator.clipboard.writeText(key).then(() => {
-                alert('키가 복사되었습니다:\n' + key);
-            }).catch(() => {
-                prompt('아래 키를 복사하세요:', key);
-            });
-        }
-
-        async function deleteKey(key) {
-            if (!confirm('이 키를 삭제하시겠습니까?\n\n키: ' + key + '\n\n삭제 후 복구 불가')) return;
-            try {
-                const res = await fetch('/api/admin/keys/' + key + '/delete', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await res.json();
-                if (data.success) {
-                    alert('키가 삭제되었습니다');
-                    location.reload();
-                } else {
-                    alert('삭제 실패: ' + (data.error || '알 수 없는 오류'));
-                }
-            } catch (e) {
-                alert('오류: ' + e.message);
-            }
-        }
-    </script>
+  async function deleteKey(key) {
+    if (!confirm('이 키를 삭제하시겠습니까?\n\n키: ' + key + '\n\n삭제 후 복구 불가')) return;
+    try {
+      const res = await fetch('/api/admin/keys/' + key + '/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('키가 삭제되었습니다');
+        location.reload();
+      } else {
+        alert('삭제 실패: ' + (data.error || '알 수 없는 오류'));
+      }
+    } catch (e) {
+      alert('오류: ' + e.message);
+    }
+  }
+</script>
 </body>
 </html>
