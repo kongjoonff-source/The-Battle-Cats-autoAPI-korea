@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 로그인 - 냥코통조림충전소</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🔒 관리자 로그인</h1>
+                <p>냥코통조림충전소 관리자 패널</p>
+            </div>
+
+            {% if error %}
+            <div class="result-box error">
+                <p>❌ {{ error }}</p>
+            </div>
+            {% endif %}
+
+            <form method="POST" class="login-form">
+                <div class="form-group">
+                    <label for="password">관리자 비밀번호</label>
+                    <input type="password" id="password" name="password" required placeholder="비밀번호를 입력하세요">
+                </div>
+                <button type="submit" class="submit-btn">로그인</button>
+            </form>
+
+            <div class="login-footer">
+                <a href="/">← 고객 페이지로 이동</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

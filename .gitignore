@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# 환경변수 (절대 커밋 금지)
+.env
+.env.local
+.env.production
+
+# 데이터 (주문/입금 내역은 서버에서만 관리)
+data/*.json
+!data/.gitkeep
+
+# bcsfe 캐시/세이브
+bcsfe_cache/
+saves/
+*.bcsfe
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 로그
+*.log
+logs/

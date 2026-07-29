@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 패널 - 냥코통조림충전소</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">🐱 냥코통조림충전소 관리자 패널</div>
+            <div class="admin-nav">
+                <a href="#orders">구매내역</a>
+                <a href="#deposits">입금내역</a>
+                <a href="#prices">가격설정</a>
+                <a href="/admin/data" target="_blank">데이터 내보내기</a>
+                <a href="/admin/logout">로그아웃</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- 통계 -->
+        <section class="stats-section">
+            <h3>📊 오늘의 통계</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_orders }}</div>
+                    <div class="stat-label">총 주문</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value">{{ completed_orders }}</div>
+                    <div class="stat-label">완료</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value">{{ pending_orders }}</div>
+                    <div class="stat-label">대기중</div>
+                </div>
+                <div class="stat-card error">
+                    <div class="stat-value">{{ failed_orders }}</div>
+                    <div class="stat-label">실패</div>
+                </div>
+                <div class="stat-card revenue">
+                    <div class="stat-value">{{ total_revenue }}원</div>
+                    <div class="stat-label">총 수익</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 가격 설정 -->
+        <section id="prices" class="admin-section">
+            <h3>💰 가격 설정</h3>
+            <div class="price-editor">
+                <table class="price-table">
+                    <thead>
+                        <tr>
+                            <th>수량</th>
+                            <th>가격 (원)</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="price-list">
+                        {% for key, price in prices.items() %}
+                        <tr data-key="{{ key }}">
+                            <td>{{ key }}개</td>
+                            <td><input type="number" class="price-input" data-key="{{ key }}" value="{{ price }}" min="100"></td>
+                            <td><button class="save-price-btn" data-key="{{ key }}">저장</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button class="submit-btn" id="save-all-prices" style="margin-top: 15px;">전체 가격 저장</button>
+            </div>
+        </section>
+
+        <!-- 구매내역 -->
+        <section id="orders" class="admin-section">
+            <h3>📋 구매내역</h3>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>주문번호</th>
+                            <th>입금자명</th>
+                            <th>수량</th>
+                            <th>가격</th>
+                            <th>상태</th>
+                            <th>결과</th>
+                            <th>생성일</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><code>{{ order.id }}</code></td>
+                            <td>{{ order.buyer_name }}</td>
+                            <td>{{ order.amount }}개</td>
+                            <td>{{ order.price }}원</td>
+                            <td>
+                                {% if order.status == 'completed' %}
+                                <span class="badge success">완료</span>
+                                {% elif order.status == 'pending' %}
+                                <span class="badge warning">대기중</span>
+                                {% elif order.status == 'processing' %}
+                                <span class="badge processing">처리중</span>
+                                {% else %}
+                                <span class="badge error">실패</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.result %}
+                                    {% if order.result.success %}
+                                    <span class="small">✅ 완료</span>
+                                    {% else %}
+                                    <span class="small error">{{ order.result.error }}</span>
+                                    {% endif %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="small">{{ order.created_at }}</td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <button class="manual-deposit-btn" data-buyer="{{ order.buyer_name }}" data-price="{{ order.price }}">입금확인</button>
+                                {% endif %}
+                                {% if order.result and order.result.success %}
+                                <button class="copy-code-btn" data-transfer="{{ order.result.new_transfer_code }}" data-confirm="{{ order.result.new_confirmation_code }}">복사</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 입금내역 -->
+        <section id="deposits" class="admin-section">
+            <h3>🏦 입금내역</h3>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>입금번호</th>
+                            <th>입금자명</th>
+                            <th>주문번호</th>
+                            <th>금액</th>
+                            <th>시간</th>
+                            <th>방법</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for deposit in deposits %}
+                        <tr>
+                            <td><code>{{ deposit.id }}</code></td>
+                            <td>{{ deposit.buyer_name }}</td>
+                            <td><code>{{ deposit.order_id }}</code></td>
+                            <td>{{ deposit.amount }}원</td>
+                            <td class="small">{{ deposit.timestamp }}</td>
+                            <td>
+                                {% if deposit.manual %}
+                                <span class="badge">수동</span>
+                                {% else %}
+                                <span class="badge success">자동</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 지급 안 된 내역 -->
+        <section id="failed" class="admin-section">
+            <h3>⚠️ 지급 안 된 내역</h3>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>주문번호</th>
+                            <th>입금자명</th>
+                            <th>오류</th>
+                            <th>시간</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders if order.status == 'failed' %}
+                        <tr>
+                            <td><code>{{ order.id }}</code></td>
+                            <td>{{ order.buyer_name }}</td>
+                            <td class="error">{{ order.result.error if order.result else '알 수 없음' }}</td>
+                            <td class="small">{{ order.completed_at if order.completed_at else order.created_at }}</td>
+                            <td>
+                                <button class="retry-btn" data-order-id="{{ order.id }}">재시도</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2024 냥코통조림충전소 관리자 패널</p>
+        </div>
+    </footer>
+
+    <script>
+        // 가격 저장
+        document.querySelectorAll('.save-price-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const key = this.dataset.key;
+                const input = document.querySelector(`.price-input[data-key="${key}"]`);
+                const price = input.value;
+
+                const prices = {};
+                document.querySelectorAll('.price-input').forEach(inp => {
+                    prices[inp.dataset.key] = parseInt(inp.value);
+                });
+
+                try {
+                    const response = await fetch('/admin/update-prices', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({prices: prices})
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        alert('가격이 저장되었습니다');
+                    } else {
+                        alert('저장 실패: ' + result.error);
+                    }
+                } catch (e) {
+                    alert('오류: ' + e.message);
+                }
+            });
+        });
+
+        // 전체 가격 저장
+        document.getElementById('save-all-prices').addEventListener('click', async function() {
+            const prices = {};
+            document.querySelectorAll('.price-input').forEach(inp => {
+                prices[inp.dataset.key] = parseInt(inp.value);
+            });
+
+            try {
+                const response = await fetch('/admin/update-prices', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prices: prices})
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert('전체 가격이 저장되었습니다');
+                } else {
+                    alert('저장 실패: ' + result.error);
+                }
+            } catch (e) {
+                alert('오류: ' + e.message);
+            }
+        });
+
+        // 수동 입금 확인
+        document.querySelectorAll('.manual-deposit-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const buyer = this.dataset.buyer;
+                const price = this.dataset.price;
+
+                if (confirm(`${buyer}님의 ${price}원 입금을 확인하시겠습니까?`)) {
+                    try {
+                        const response = await fetch('/admin/manual-deposit', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                buyer_name: buyer,
+                                deposit_amount: parseInt(price)
+                            })
+                        });
+                        const result = await response.json();
+                        if (response.ok) {
+                            alert('입금 확인 및 충전 시작');
+                            location.reload();
+                        } else {
+                            alert('실패: ' + result.error);
+                        }
+                    } catch (e) {
+                        alert('오류: ' + e.message);
+                    }
+                }
+            });
+        });
+
+        // 코드 복사
+        document.querySelectorAll('.copy-code-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const transfer = this.dataset.transfer;
+                const confirm = this.dataset.confirm;
+                const text = `전송코드: ${transfer}\n인증번호: ${confirm}`;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('복사되었습니다:\n' + text);
+                });
+            });
+        });
+
+        // 재시도
+        document.querySelectorAll('.retry-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                if (confirm('재시도하시겠습니까?')) {
+                    // 재시도 로직 - 여기서는 페이지 새로고침
+                    alert('재시도 기능은 추후 업데이트 예정입니다.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

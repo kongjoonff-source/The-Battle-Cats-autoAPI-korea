@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: nyanko-charge
+    runtime: python
+    plan: free            # 무료 플랜 (스pin-down 주의: 아래 README 참고)
+    region: singapore     # 한국에서 가장 가까운 리전
+    branch: main
+    rootDirectory: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PUSHBULLET_API_KEY
+        sync: false        # Render 대시보드에서 직접 입력
+      - key: ADMIN_PASSWORD
+        sync: false        # Render 대시보드에서 직접 입력
+      - key: BANK_NAME
+        value: 토스뱅크
+      - key: BANK_ACCOUNT
+        value: 1908-9467-3821
+      - key: ACCOUNT_HOLDER
+        value: 공예준
+      - key: ADMIN_ALLOWED_IPS
+        value: 127.0.0.1,::1,localhost
+      - key: DATA_DIR
+        value: data
