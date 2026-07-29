@@ -3,6 +3,8 @@ import json
 import os
 import threading
 import secrets
+import time
+import requests
 from datetime import datetime, timedelta
 from bcsfe_handler_full import process_all_items
 from config import (
@@ -28,6 +30,24 @@ def _init_bcsfe():
         print(f"[WARN] bcsfe 초기화 실패: {e}")
 
 _init_bcsfe()
+
+# ========== Keep-Alive (Render 무료 플랜 슬립 방지) ==========
+def _keep_alive():
+    """5분마다 자기 자신에게 핑을 보내서 Render 슬립 방지"""
+    url = os.environ.get("RENDER_EXTERNAL_URL")
+    if not url:
+        return
+    print(f"[KEEP-ALIVE] 활성화: {url} (5분 간격)")
+    while True:
+        try:
+            requests.get(url + "/gate", timeout=10)
+            print(f"[KEEP-ALIVE] 핑 전송: {datetime.now().strftime('%H:%M:%S')}")
+        except Exception as e:
+            print(f"[KEEP-ALIVE] 핑 실패: {e}")
+        time.sleep(300)
+
+if os.environ.get("RENDER_EXTERNAL_URL"):
+    threading.Thread(target=_keep_alive, daemon=True).start()
 
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
 DEPOSITS_FILE = os.path.join(DATA_DIR, "deposits.json")
