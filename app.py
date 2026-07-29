@@ -1,16 +1,20 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import json
 import os
 import threading
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from bcsfe_handler_full import process_all_items
 from config import (
     PUSHBULLET_API_KEY, BANK_NAME, BANK_ACCOUNT, ACCOUNT_HOLDER,
     CATFOOD_PRICES, XP_PRICES, TICKET_PRICES,
-    DATA_DIR, SERVER_HOST, SERVER_PORT, SERVER_DEBUG
+    DATA_DIR, SERVER_HOST, SERVER_PORT, SERVER_DEBUG,
+    ADMIN_PASSWORD, ADMIN_ALLOWED_IPS, SECRET_KEY
 )
 
 app = Flask(__name__)
+app.secret_key = SECRET_KEY
+app.permanent_session_lifetime = timedelta(days=365)
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -24,9 +28,53 @@ def _init_bcsfe():
         print(f"[WARN] bcsfe 초기화 실패: {e}")
 
 _init_bcsfe()
+
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
 DEPOSITS_FILE = os.path.join(DATA_DIR, "deposits.json")
 PRICES_FILE = os.path.join(DATA_DIR, "prices.json")
+ACCESS_KEYS_FILE = os.path.join(DATA_DIR, "access_keys.json")
+
+# ========== 데이터 로드/저장 ==========
+
+def load_orders():
+    if os.path.exists(ORDERS_FILE):
+        with open(ORDERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_orders(orders):
+    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(orders, f, ensure_ascii=False, indent=2)
+
+def load_deposits():
+    if os.path.exists(DEPOSITS_FILE):
+        with open(DEPOSITS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_deposits(deposits):
+    with open(DEPOSITS_FILE, "w", encoding="utf-8") as f:
+        json.dump(deposits, f, ensure_ascii=False, indent=2)
+
+def load_access_keys():
+    if os.path.exists(ACCESS_KEYS_FILE):
+        with open(ACCESS_KEYS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_access_keys(keys):
+    with open(ACCESS_KEYS_FILE, "w", encoding="utf-8") as f:
+        json.dump(keys, f, ensure_ascii=False, indent=2)
+
+def is_key_valid(key):
+    """키가 존재하고 만료되지 않았는지 확인"""
+    keys = load_access_keys()
+    for k in keys:
+        if k["key"] == key:
+            expires_at = datetime.fromisoformat(k["expires_at"])
+            if datetime.now() < expires_at:
+                return True, k
+    return False, None
 
 # 모든 상품 가격
 def get_all_prices():
@@ -72,27 +120,55 @@ def get_item_definitions():
         {"id": "np_10000", "type": "np", "name": "NP 10,000개", "amount": 10000, "icon": "🧬", "category": "기타", "price": 7000},
     ]
 
-def load_orders():
-    if os.path.exists(ORDERS_FILE):
-        with open(ORDERS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+# ========== 접근 키 게이트 ==========
 
-def save_orders(orders):
-    with open(ORDERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(orders, f, ensure_ascii=False, indent=2)
+@app.before_request
+def check_access_key():
+    """유효한 키가 없으면 게이트 페이지로 리다이렉트"""
+    # 예외 경로 (키 입력, 관리자, 정적 파일)
+    exempt_prefixes = ['/gate', '/api/verify-key', '/static', '/admin', '/api/admin']
+    for prefix in exempt_prefixes:
+        if request.path.startswith(prefix):
+            return
 
-def load_deposits():
-    if os.path.exists(DEPOSITS_FILE):
-        with open(DEPOSITS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    # 세션에 유효한 키가 있는지 확인
+    user_key = session.get('access_key')
+    if user_key:
+        valid, _ = is_key_valid(user_key)
+        if valid:
+            return  # 통과
 
-def save_deposits(deposits):
-    with open(DEPOSITS_FILE, "w", encoding="utf-8") as f:
-        json.dump(deposits, f, ensure_ascii=False, indent=2)
+    # 유효한 키 없음 → 게이트로
+    return redirect(url_for('gate'))
 
-# ========== 라우트 ==========
+# ========== 라우트: 게이트 ==========
+
+@app.route("/gate")
+def gate():
+    """키 입력 페이지"""
+    user_key = session.get('access_key')
+    if user_key:
+        valid, _ = is_key_valid(user_key)
+        if valid:
+            return redirect(url_for('index'))
+    return render_template("gate.html")
+
+@app.route("/api/verify-key", methods=["POST"])
+def verify_key():
+    """키 검증 및 세션 설정"""
+    data = request.json
+    key = data.get("key", "").strip()
+    valid, key_data = is_key_valid(key)
+    if valid:
+        session.permanent = True
+        session['access_key'] = key
+        # 세션 만료를 키 만료시간에 맞춤
+        expires_at = datetime.fromisoformat(key_data['expires_at'])
+        app.permanent_session_lifetime = expires_at - datetime.now()
+        return jsonify({"success": True, "message": "접근이 허용되었습니다"})
+    return jsonify({"success": False, "error": "유효하지 않거나 만료된 키입니다"}), 403
+
+# ========== 라우트: 메인 ==========
 
 @app.route("/")
 def index():
@@ -196,7 +272,6 @@ def process_order_direct():
 
     def process_background():
         try:
-            # 아이템 리스트를 bcsfe 형식으로 변환
             bcsfe_items = []
             for item in order["items"]:
                 for _ in range(item["quantity"]):
@@ -236,7 +311,6 @@ def process_order_direct():
         order["completed_at"] = datetime.now().isoformat()
         save_orders(orders)
 
-
     thread = threading.Thread(target=process_background)
     thread.start()
 
@@ -244,6 +318,162 @@ def process_order_direct():
         "message": "처리 시작!",
         "order_id": order["id"]
     })
+
+# ========== 라우트: 관리자 ==========
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin_login():
+    """관리자 로그인"""
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if password == ADMIN_PASSWORD:
+            session.permanent = True
+            session['admin'] = True
+            return redirect(url_for('admin_panel'))
+        return render_template("admin_login.html", error="비밀번호가 틀렸습니다")
+    return render_template("admin_login.html")
+
+@app.route("/admin/panel")
+def admin_panel():
+    """관리자 패널"""
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+
+    orders = load_orders()
+    deposits = load_deposits()
+    prices = get_all_prices()
+    access_keys = load_access_keys()
+
+    # 만료 여부 표시
+    now = datetime.now()
+    for k in access_keys:
+        k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now
+
+    # 통계
+    total_orders = len(orders)
+    completed_orders = len([o for o in orders if o.get('status') == 'completed'])
+    pending_orders = len([o for o in orders if o.get('status') == 'pending'])
+    failed_orders = len([o for o in orders if o.get('status') == 'failed'])
+    total_revenue = sum(o.get('total_price', 0) for o in orders if o.get('status') == 'completed')
+
+    return render_template("admin.html",
+        orders=orders,
+        deposits=deposits,
+        prices=prices,
+        access_keys=access_keys,
+        total_orders=total_orders,
+        completed_orders=completed_orders,
+        pending_orders=pending_orders,
+        failed_orders=failed_orders,
+        total_revenue=total_revenue
+    )
+
+@app.route("/admin/logout")
+def admin_logout():
+    """관리자 로그아웃"""
+    session.pop('admin', None)
+    return redirect(url_for('admin_login'))
+
+@app.route("/admin/update-prices", methods=["POST"])
+def admin_update_prices():
+    """가격 일괄 업데이트"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    data = request.json
+    prices = data.get("prices", {})
+    # 정수 변환
+    prices = {k: int(v) for k, v in prices.items()}
+    with open(PRICES_FILE, "w", encoding="utf-8") as f:
+        json.dump(prices, f, ensure_ascii=False, indent=2)
+    return jsonify({"success": True, "message": "가격이 저장되었습니다"})
+
+@app.route("/admin/manual-deposit", methods=["POST"])
+def admin_manual_deposit():
+    """수동 입금 확인"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    data = request.json
+    buyer_name = data.get("buyer_name", "")
+    deposit_amount = data.get("deposit_amount", 0)
+
+    deposits = load_deposits()
+    deposit = {
+        "id": f"DEP{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "buyer_name": buyer_name,
+        "amount": deposit_amount,
+        "timestamp": datetime.now().isoformat(),
+        "manual": True
+    }
+    deposits.append(deposit)
+    save_deposits(deposits)
+
+    return jsonify({"success": True, "message": "입금 확인 완료"})
+
+@app.route("/admin/data")
+def admin_export_data():
+    """데이터 내보내기"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    data = {
+        "orders": load_orders(),
+        "deposits": load_deposits(),
+        "prices": get_all_prices(),
+        "access_keys": load_access_keys()
+    }
+    return jsonify(data)
+
+# ========== 라우트: 키 관리 (관리자 전용) ==========
+
+@app.route("/api/admin/keys")
+def admin_list_keys():
+    """전체 키 목록"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    keys = load_access_keys()
+    now = datetime.now()
+    for k in keys:
+        k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now
+    return jsonify(keys)
+
+@app.route("/api/admin/keys/generate", methods=["POST"])
+def admin_generate_key():
+    """새 키 생성 (만료기간 설정 가능)"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+
+    data = request.json
+    days = int(data.get("days", 1))
+    hours = int(data.get("hours", 0))
+    label = data.get("label", "")
+
+    new_key = secrets.token_urlsafe(16)
+    created_at = datetime.now()
+    expires_at = created_at + timedelta(days=days, hours=hours)
+
+    keys = load_access_keys()
+    key_entry = {
+        "key": new_key,
+        "created_at": created_at.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "label": label
+    }
+    keys.append(key_entry)
+    save_access_keys(keys)
+
+    print(f"[ADMIN] 새 키 생성: {new_key} (만료: {expires_at})")
+    return jsonify({"success": True, "key": key_entry})
+
+@app.route("/api/admin/keys/<key>/delete", methods=["POST"])
+def admin_delete_key(key):
+    """키 삭제"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    keys = load_access_keys()
+    keys = [k for k in keys if k["key"] != key]
+    save_access_keys(keys)
+    return jsonify({"success": True, "message": "키가 삭제되었습니다"})
+
+# ========== 실행 ==========
 
 if __name__ == "__main__":
     print("=" * 70)

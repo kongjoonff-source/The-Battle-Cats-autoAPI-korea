@@ -55,6 +55,9 @@ BCSFE_SAVE_DIR = os.environ.get("BCSFE_SAVE_DIR", os.path.join(BCSFE_DATA_DIR, "
 # Render의 영구 디스크를 마운트한 경우 해당 경로로 변경 가능.
 DATA_DIR = os.environ.get("DATA_DIR", "data")
 
+# Flask 세션 암호화 키 (반드시 환경변수로 설정하세요)
+SECRET_KEY = os.environ.get("SECRET_KEY", "nyanko-charge-secret-2024-change-me")
+
 # 서버 설정
 # Render는 PORT 환경변수를 자동으로 넘겨줌.
 SERVER_HOST = os.environ.get("SERVER_HOST", "0.0.0.0")

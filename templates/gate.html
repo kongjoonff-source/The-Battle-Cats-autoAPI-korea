@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🔑 접근 키 입력 — 냥코 충전소</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05060f;
+  --bg2:#0a0c1c;
+  --card:rgba(18,20,38,0.72);
+  --primary:#7c3aed;
+  --primary2:#a855f7;
+  --primary3:#c084fc;
+  --cyan:#06b6d4;
+  --pink:#ec4899;
+  --accent:#fbbf24;
+  --success:#10b981;
+  --success2:#34d399;
+  --danger:#ef4444;
+  --text:#f1f5f9;
+  --sub:#94a3b8;
+  --border:rgba(168,85,247,0.18);
+  --glow:0 0 24px rgba(168,85,247,0.35);
+  --radius:18px;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans KR',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 20%,rgba(124,58,237,0.18) 0%,transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 30%,rgba(6,182,212,0.14) 0%,transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 90%,rgba(236,72,153,0.12) 0%,transparent 55%);
+  pointer-events:none;z-index:0;
+  animation:auroraShift 18s ease-in-out infinite alternate;
+}
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(168,85,247,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(168,85,247,0.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+  mask-image:radial-gradient(ellipse at center,black 30%,transparent 75%);
+}
+@keyframes auroraShift{
+  0%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(-3%,2%) scale(1.05)}
+  100%{transform:translate(2%,-2%) scale(1.02)}
+}
+
+.gate-container{
+  position:relative;z-index:1;
+  max-width:440px;width:90%;
+  padding:20px;
+}
+
+.gate-card{
+  background:var(--card);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border-radius:28px;
+  padding:40px 30px;
+  border:1px solid var(--border);
+  box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 40px rgba(124,58,237,0.15);
+  position:relative;
+  overflow:hidden;
+}
+.gate-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--primary3),var(--cyan),var(--pink),transparent);
+  animation:gradientFlow 4s ease infinite;
+}
+@keyframes gradientFlow{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+
+.gate-icon{
+  font-size:3.5rem;
+  text-align:center;
+  margin-bottom:16px;
+  display:inline-block;
+  animation:keyFloat 3s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(168,85,247,0.6));
+}
+@keyframes keyFloat{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-8px) rotate(5deg)}
+}
+
+.gate-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:1.4rem;font-weight:900;
+  text-align:center;
+  background:linear-gradient(135deg,var(--primary3),var(--cyan),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 200%;
+  animation:gradientFlow 5s ease infinite;
+  margin-bottom:8px;
+  letter-spacing:1px;
+}
+.gate-subtitle{
+  text-align:center;
+  color:var(--sub);
+  font-size:.82rem;
+  margin-bottom:28px;
+}
+
+.input-wrap{position:relative;margin-bottom:16px}
+input{
+  width:100%;
+  padding:16px 18px 16px 50px;
+  border-radius:14px;
+  border:1.5px solid var(--border);
+  background:rgba(255,255,255,0.03);
+  color:var(--text);
+  outline:none;
+  font-size:1rem;
+  font-family:'Orbitron',sans-serif;
+  letter-spacing:1px;
+  transition:all .3s;
+  text-align:center;
+}
+input::placeholder{
+  color:var(--sub);
+  font-family:'Noto Sans KR',sans-serif;
+  letter-spacing:0;
+  font-size:.85rem;
+}
+input:focus{
+  border-color:var(--primary2);
+  box-shadow:0 0 0 4px rgba(168,85,247,0.12),0 0 24px rgba(168,85,247,0.2);
+  background:rgba(168,85,247,0.04);
+}
+.input-icon{
+  position:absolute;left:18px;top:50%;transform:translateY(-50%);
+  color:var(--sub);font-size:1.1rem;
+  transition:color .3s;
+}
+input:focus + .input-icon{color:var(--primary3)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:16px 20px;border-radius:14px;border:none;
+  font-size:.95rem;font-weight:800;cursor:pointer;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  width:100%;font-family:inherit;
+  position:relative;overflow:hidden;
+  text-transform:uppercase;letter-spacing:1px;
+}
+.btn:active{transform:scale(.95)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  color:#fff;
+  box-shadow:0 4px 20px rgba(124,58,237,0.4);
+}
+.btn-primary:hover{
+  box-shadow:0 8px 30px rgba(124,58,237,0.6),0 0 40px rgba(168,85,247,0.3);
+  transform:translateY(-2px);
+}
+
+.error-msg{
+  display:none;
+  background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.06));
+  border:1.5px solid rgba(239,68,68,0.3);
+  border-radius:12px;
+  padding:12px 16px;
+  margin-bottom:16px;
+  font-size:.82rem;
+  color:var(--danger);
+  text-align:center;
+  animation:shake .4s;
+}
+.error-msg.show{display:block}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-8px)}
+  75%{transform:translateX(8px)}
+}
+
+.spinner{
+  display:inline-block;width:16px;height:16px;
+  border:2.5px solid rgba(255,255,255,.15);
+  border-top-color:var(--primary3);
+  border-right-color:var(--cyan);
+  border-radius:50%;
+  animation:spin .7s linear;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.gate-footer{
+  text-align:center;
+  margin-top:24px;
+  font-size:.72rem;
+  color:var(--sub);
+}
+.gate-footer a{
+  color:var(--primary3);
+  text-decoration:none;
+  transition:color .2s;
+}
+.gate-footer a:hover{color:var(--cyan)}
+</style>
+</head>
+<body>
+
+<div class="gate-container">
+  <div class="gate-card">
+    <div style="text-align:center;">
+      <span class="gate-icon">🔑</span>
+    </div>
+    <h1 class="gate-title">ACCESS KEY</h1>
+    <p class="gate-subtitle">사이트에 접근하려면 키를 입력하세요</p>
+
+    <div class="error-msg" id="errorMsg">
+      <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+    </div>
+
+    <div class="input-wrap">
+      <input type="text" id="keyInput" placeholder="접근 키를 입력하세요" autocomplete="off">
+      <i class="fas fa-key input-icon"></i>
+    </div>
+
+    <button class="btn btn-primary" onclick="verifyKey()" id="verifyBtn">
+      <i class="fas fa-unlock"></i> 접근하기
+    </button>
+
+    <div class="gate-footer">
+      <a href="/admin">관리자 로그인</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const input = document.getElementById('keyInput');
+const btn = document.getElementById('verifyBtn');
+const errorMsg = document.getElementById('errorMsg');
+const errorText = document.getElementById('errorText');
+
+input.focus();
+
+input.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') verifyKey();
+});
+
+async function verifyKey() {
+  const key = input.value.trim();
+  if (!key) {
+    showError('키를 입력해주세요');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 확인 중...';
+
+  try {
+    const res = await fetch('/api/verify-key', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ key: key })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      btn.innerHTML = '<i class="fas fa-check-circle"></i> 성공!';
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    } else {
+      showError(data.error || '키가 유효하지 않습니다');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-unlock"></i> 접근하기';
+    }
+  } catch (e) {
+    showError('서버 연결 실패');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-unlock"></i> 접근하기';
+  }
+}
+
+function showError(msg) {
+  errorText.textContent = msg;
+  errorMsg.classList.add('show');
+  input.style.borderColor = 'var(--danger)';
+  setTimeout(() => {
+    errorMsg.classList.remove('show');
+    input.style.borderColor = '';
+  }, 3000);
+}
+</script>
+</body>
+</html>

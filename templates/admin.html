@@ -49,6 +49,71 @@
             </div>
         </section>
 
+        <!-- 접근 키 관리 -->
+        <section id="keys" class="admin-section">
+            <h3>🔑 접근 키 관리</h3>
+            <div style="margin-bottom:20px;padding:16px;background:rgba(168,85,247,0.06);border-radius:12px;border:1px solid rgba(168,85,247,0.2);">
+                <h4 style="margin-bottom:12px;color:#c084fc;">✨ 새 키 생성</h4>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+                    <div>
+                        <label style="font-size:.75rem;color:#94a3b8;display:block;margin-bottom:4px;">라벨 (선택)</label>
+                        <input type="text" id="keyLabel" placeholder="예: 친구1" style="width:150px;padding:8px 12px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);background:rgba(255,255,255,0.03);color:#f1f5f9;font-size:.85rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:.75rem;color:#94a3b8;display:block;margin-bottom:4px;">만료일 (일)</label>
+                        <input type="number" id="keyDays" value="1" min="0" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);background:rgba(255,255,255,0.03);color:#f1f5f9;font-size:.85rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:.75rem;color:#94a3b8;display:block;margin-bottom:4px;">추가 시간 (시)</label>
+                        <input type="number" id="keyHours" value="0" min="0" max="23" style="width:80px;padding:8px 12px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);background:rgba(255,255,255,0.03);color:#f1f5f9;font-size:.85rem;">
+                    </div>
+                    <button onclick="generateKey()" style="padding:9px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;cursor:pointer;font-size:.85rem;transition:all .2s;">
+                        <i class="fas fa-plus"></i> 키 생성
+                    </button>
+                </div>
+                <p style="font-size:.72rem;color:#94a3b8;margin-top:8px;">※ 일수+시간으로 만료기간 설정 (예: 1일 0시간 = 24시간 후 만료)</p>
+            </div>
+
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>키</th>
+                            <th>라벨</th>
+                            <th>생성일</th>
+                            <th>만료일</th>
+                            <th>상태</th>
+                            <th>관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="keyList">
+                        {% for k in access_keys %}
+                        <tr>
+                            <td><code style="font-size:.75rem;word-break:break-all;">{{ k.key }}</code></td>
+                            <td>{{ k.label or '-' }}</td>
+                            <td class="small">{{ k.created_at[:19].replace('T',' ') }}</td>
+                            <td class="small">{{ k.expires_at[:19].replace('T',' ') }}</td>
+                            <td>
+                                {% if k.is_expired %}
+                                <span class="badge error">만료됨</span>
+                                {% else %}
+                                <span class="badge success">유효</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button onclick="copyKey('{{ k.key }}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(168,85,247,0.2);background:rgba(168,85,247,0.1);color:#c084fc;cursor:pointer;font-size:.75rem;">복사</button>
+                                <button onclick="deleteKey('{{ k.key }}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.1);color:#ef4444;cursor:pointer;font-size:.75rem;">삭제</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not access_keys %}
+                        <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px;">생성된 키가 없습니다</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- 가격 설정 -->
         <section id="prices" class="admin-section">
             <h3>💰 가격 설정</h3>
@@ -77,7 +142,7 @@
 
         <!-- 구매내역 -->
         <section id="orders" class="admin-section">
-            <h3>📋 구매내역</h3>
+            <h3>� 구매내역</h3>
             <div class="table-container">
                 <table class="admin-table">
                     <thead>
@@ -320,6 +385,70 @@
                 }
             });
         });
+
+        // ===== 접근 키 관리 =====
+        async function generateKey() {
+            const label = document.getElementById('keyLabel').value;
+            const days = document.getElementById('keyDays').value;
+            const hours = document.getElementById('keyHours').value;
+
+            if (!days && !hours) {
+                alert('만료 기간을 입력해주세요 (최소 1일 또는 1시간)');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/keys/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        label: label,
+                        days: parseInt(days) || 0,
+                        hours: parseInt(hours) || 0
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const k = data.key;
+                    alert('키가 생성되었습니다!\n\n키: ' + k.key + '\n만료: ' + k.expires_at + '\n\n복사해서 전달하세요.');
+                    navigator.clipboard.writeText(k.key).then(() => {
+                        console.log('키 클립보드 복사됨');
+                    }).catch(() => {});
+                    location.reload();
+                } else {
+                    alert('생성 실패: ' + (data.error || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                alert('오류: ' + e.message);
+            }
+        }
+
+        function copyKey(key) {
+            navigator.clipboard.writeText(key).then(() => {
+                alert('키가 복사되었습니다:\n' + key);
+            }).catch(() => {
+                prompt('아래 키를 복사하세요:', key);
+            });
+        }
+
+        async function deleteKey(key) {
+            if (!confirm('이 키를 삭제하시겠습니까?\n\n키: ' + key + '\n\n삭제 후 복구 불가')) return;
+            try {
+                const res = await fetch('/api/admin/keys/' + key + '/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('키가 삭제되었습니다');
+                    location.reload();
+                } else {
+                    alert('삭제 실패: ' + (data.error || '알 수 없는 오류'));
+                }
+            } catch (e) {
+                alert('오류: ' + e.message);
+            }
+        }
     </script>
 </body>
 </html>
