@@ -34,19 +34,26 @@ _init_bcsfe()
 # ========== Keep-Alive (Render 무료 플랜 슬립 방지) ==========
 def _keep_alive():
     """5분마다 자기 자신에게 핑을 보내서 Render 슬립 방지"""
-    url = os.environ.get("RENDER_EXTERNAL_URL")
+    # RENDER_EXTERNAL_URL이 없으면 KEEP_ALIVE_URL 환경변수 사용 (다른 Render 계정/서비스 대응)
+    url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KEEP_ALIVE_URL")
     if not url:
+        print("[KEEP-ALIVE] 비활성화: RENDER_EXTERNAL_URL/KEEP_ALIVE_URL 없음")
         return
-    print(f"[KEEP-ALIVE] 활성화: {url} (5분 간격)")
+    # URL 끝 슬래시 정리
+    url = url.rstrip("/")
+    ping_path = os.environ.get("KEEP_ALIVE_PATH", "/health")
+    interval = int(os.environ.get("KEEP_ALIVE_INTERVAL", "300"))  # 기본 5분(300초)
+    print(f"[KEEP-ALIVE] 활성화: {url}{ping_path} ({interval}초 간격)")
     while True:
         try:
-            requests.get(url + "/gate", timeout=10)
-            print(f"[KEEP-ALIVE] 핑 전송: {datetime.now().strftime('%H:%M:%S')}")
+            resp = requests.get(url + ping_path, timeout=10)
+            print(f"[KEEP-ALIVE] 핑 전송: {datetime.now().strftime('%H:%M:%S')} -> {resp.status_code}")
         except Exception as e:
             print(f"[KEEP-ALIVE] 핑 실패: {e}")
-        time.sleep(300)
+        time.sleep(interval)
 
-if os.environ.get("RENDER_EXTERNAL_URL"):
+# Render 환경 또는 KEEP_ALIVE_URL 설정 시 keep-alive 스레드 시작
+if os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KEEP_ALIVE_URL"):
     threading.Thread(target=_keep_alive, daemon=True).start()
 
 ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
@@ -145,8 +152,8 @@ def get_item_definitions():
 @app.before_request
 def check_access_key():
     """유효한 키가 없으면 게이트 페이지로 리다이렉트"""
-    # 예외 경로 (키 입력, 관리자, 정적 파일)
-    exempt_prefixes = ['/gate', '/api/verify-key', '/static', '/admin', '/api/admin']
+    # 예외 경로 (키 입력, 관리자, 정적 파일, 헬스체크)
+    exempt_prefixes = ['/gate', '/api/verify-key', '/static', '/admin', '/api/admin', '/health', '/ping']
     for prefix in exempt_prefixes:
         if request.path.startswith(prefix):
             return
@@ -187,6 +194,22 @@ def verify_key():
         app.permanent_session_lifetime = expires_at - datetime.now()
         return jsonify({"success": True, "message": "접근이 허용되었습니다"})
     return jsonify({"success": False, "error": "유효하지 않거나 만료된 키입니다"}), 403
+
+# ========== 라우트: 헬스체크 (Keep-Alive / 외부 핑용) ==========
+
+@app.route("/health")
+def health():
+    """헬스체크 엔드포인트 (접근 키 없이 접근 가능, 가벼운 응답)"""
+    return jsonify({
+        "status": "ok",
+        "service": "nyanko-charge",
+        "timestamp": datetime.now().isoformat()
+    }), 200
+
+@app.route("/ping")
+def ping():
+    """핑 엔드포인트 (단순 텍스트 응답, 외부 모니터링용)"""
+    return "pong", 200
 
 # ========== 라우트: 메인 ==========
 

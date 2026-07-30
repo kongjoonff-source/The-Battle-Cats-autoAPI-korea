@@ -1,29 +1,41 @@
 services:
-  - type: web
-    name: nyanko-charge
-    runtime: python
-    plan: free            # 무료 플랜 (스pin-down 주의: 아래 README 참고)
-    region: singapore     # 한국에서 가장 가까운 리전
-    branch: main
-    rootDirectory: .
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT
-    healthCheckPath: /
-    autoDeploy: true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
-      - key: PUSHBULLET_API_KEY
-        sync: false        # Render 대시보드에서 직접 입력
-      - key: ADMIN_PASSWORD
-        sync: false        # Render 대시보드에서 직접 입력
-      - key: BANK_NAME
-        value: 토스뱅크
-      - key: BANK_ACCOUNT
-        value: 1908-9467-3821
-      - key: ACCOUNT_HOLDER
-        value: 공예준
-      - key: ADMIN_ALLOWED_IPS
-        value: 127.0.0.1,::1,localhost
-      - key: DATA_DIR
-        value: data
+- type: web
+  name: nyanko-charge
+  runtime: python
+  plan: free            # 무료 플랜 (spin-down 시: 아래 README 참고)
+  region: singapore     # 한국에서 가장 가까운 리전
+  branch: main
+  rootDirectory: .
+  buildCommand: pip install -r requirements.txt
+  startCommand: gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT
+  healthCheckPath: /health
+  autoDeploy: true
+  envVars:
+    - key: PYTHON_VERSION
+      value: 3.11.9
+    - key: PUSHBULLET_API_KEY
+      sync: false        # Render 대시보드에서 직접 입력
+    - key: ADMIN_PASSWORD
+      sync: false        # Render 대시보드에서 직접 입력
+    - key: SECRET_KEY
+      sync: false        # Render 대시보드에서 직접 입력 (세션 암호화용)
+    - key: BANK_NAME
+      value: 토스뱅크
+    - key: BANK_ACCOUNT
+      value: 1908-9467-3821
+    - key: ACCOUNT_HOLDER
+      value: 공예준
+    - key: ADMIN_ALLOWED_IPS
+      value: 127.0.0.1,::1,localhost
+    - key: DATA_DIR
+      value: data
+    # ===== Keep-Alive 설정 (5분마다 핑) =====
+    # RENDER_EXTERNAL_URL은 Render가 자동으로 주입되므로 별도 설정 불필요.
+    # 다른 Render 계정/서비스 URL을 핑해야 할 경우 KEEP_ALIVE_URL에 URL 입력.
+    # 아래 값들은 선택 사항 (기본값: /health, 300초=5분)
+    - key: KEEP_ALIVE_URL
+      sync: false        # 다른 Render 서비스 URL 입력 (예: https://xxx.onrender.com). 비워두면 자기 자신(RUN_EXTERNAL_URL)을 핑.
+    - key: KEEP_ALIVE_PATH
+      value: /health
+    - key: KEEP_ALIVE_INTERVAL
+      value: "300"
