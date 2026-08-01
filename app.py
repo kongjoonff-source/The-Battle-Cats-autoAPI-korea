@@ -19,6 +19,15 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.permanent_session_lifetime = timedelta(days=365)
 
+# Jinja2 필터: 숫자 콤마 포맷 ({{ 5000|number_format }} -> 5,000)
+@app.template_filter("number_format")
+def number_format(value):
+    """숫자를 천 단위 콤마로 포맷"""
+    try:
+        return f"{int(value):,}"
+    except (ValueError, TypeError):
+        return value
+
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # bcsfe 초기화 (gunicorn 환경에서도 모듈 로드 시 1회 실행)
