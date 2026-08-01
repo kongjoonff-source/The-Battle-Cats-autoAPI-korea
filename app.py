@@ -500,6 +500,17 @@ def get_order(order_id):
     order = next((o for o in orders if o["id"] == order_id), None)
     if not order:
         return jsonify({"error": "주문 없음"}), 404
+    
+    # 디버깅: order와 result 구조 확인
+    import json
+    print(f"[API] get_order: {order_id}")
+    print(f"[API] order keys: {list(order.keys())}")
+    if 'result' in order:
+        print(f"[API] result type: {type(order['result'])}")
+        print(f"[API] result: {json.dumps(order.get('result'), ensure_ascii=False, indent=2)}")
+    else:
+        print(f"[API] result 키가 없음")
+    
     return jsonify(order)
 
 @app.route("/api/process", methods=["POST"])
