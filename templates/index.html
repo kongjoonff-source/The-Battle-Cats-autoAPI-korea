@@ -270,6 +270,7 @@ function renderItems() {
     return '<div class="item-card ' + selected + '" onclick="toggleItem(\'' + item.id + '\', event)" data-id="' + item.id + '">' +
       '<div class="item-icon">' + item.icon + '</div>' +
       '<div class="item-name">' + item.name + '</div>' +
+      (selected ? '<div style="position:absolute;top:6px;right:6px;background:var(--primary2);color:#fff;font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:20px;box-shadow:0 0 8px rgba(168,85,247,0.6);">선택됨 ' + qty + '개</div>' : '') +
       (selected ? '<div class="item-qty"><button onclick="event.stopPropagation();changeQty(\'' + item.id + '\',-1,event)">−</button><span style="color:var(--success2);">' + qty + '</span><button onclick="event.stopPropagation();changeQty(\'' + item.id + '\',1,event)">+</button></div>' : '') +
       extraInputs + '</div>';
   }).join('');
