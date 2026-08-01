@@ -398,6 +398,56 @@ tbody tr:hover{background:rgba(168,85,247,0.04);}
     </div>
   </div>
 
+  <!-- 키 구매 설정 -->
+  <div class="card">
+    <div class="card-title"><i class="fas fa-shopping-cart"></i>키 구매 설정</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px;background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(6,182,212,0.04));border-radius:12px;border:1px solid var(--border);">
+      <div>
+        <div style="font-weight:800;font-size:.9rem;">키 구매 기능</div>
+        <div style="font-size:.72rem;color:var(--sub);margin-top:4px;">켜면 게이트 페이지에 구매 버튼이 표시됩니다</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="keyPurchaseToggle" {% if key_purchase_enabled %}checked{% endif %} onchange="toggleKeyPurchase()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div style="margin-top:12px;font-size:.78rem;color:var(--sub);">
+      <div>🔑 1일 키: <b style="color:var(--accent);">5,000원</b></div>
+      <div>🔑 3일 키: <b style="color:var(--accent);">10,000원</b></div>
+    </div>
+  </div>
+
+  <!-- 키 구매 대기 목록 -->
+  <div class="card" id="purchaseListCard">
+    <div class="card-title"><i class="fas fa-clock"></i>입금 대기 중인 구매</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>구매ID</th><th>플랜</th><th>입금자</th><th>금액</th><th>요청일</th><th>관리</th></tr>
+        </thead>
+        <tbody id="purchaseList">
+          {% for p in key_purchases if p.status == 'waiting_deposit' %}
+          <tr>
+            <td class="small">{{ p.id }}</td>
+            <td>{{ p.plan_name }}</td>
+            <td>{{ p.depositor_name }}</td>
+            <td style="color:var(--accent);font-weight:800;">{{ p.price|number_format }}원</td>
+            <td class="small">{{ p.created_at[:19].replace('T',' ') }}</td>
+            <td>
+              <button class="btn-action btn-copy" onclick="approvePurchase('{{ p.id }}')">
+                <i class="fas fa-check"></i> 입금확인
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not key_purchases or not key_purchases|selectattr('status','equalto','waiting_deposit')|list %}
+          <tr><td colspan="6"><div class="empty-state"><i class="fas fa-inbox"></i>대기 중인 구매가 없습니다</div></td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- 키 목록 -->
   <div class="card">
     <div class="card-title"><i class="fas fa-key"></i>발급된 키 목록</div>
@@ -524,6 +574,67 @@ tbody tr:hover{background:rgba(168,85,247,0.04);}
       alert('오류: ' + e.message);
     }
   }
+  async function toggleKeyPurchase() {
+    const enabled = document.getElementById('keyPurchaseToggle').checked;
+    try {
+      const res = await fetch('/api/admin/key-purchase/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ enabled: enabled })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        location.reload();
+      } else {
+        alert('실패: ' + (data.error || '오류'));
+        location.reload();
+      }
+    } catch (e) {
+      alert('오류: ' + e.message);
+      location.reload();
+    }
+  }
+
+  async function approvePurchase(purchaseId) {
+    if (!confirm('입금을 확인하고 키를 발급하시겠습니까?\n\n구매ID: ' + purchaseId)) return;
+    try {
+      const res = await fetch('/api/admin/key-purchase/approve', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ purchase_id: purchaseId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('키 발급 완료!\n\n키: ' + data.key + '\n만료: ' + data.expires_at + '\n\n키가 클립보드에 복사되었습니다.');
+        navigator.clipboard.writeText(data.key).catch(() => {});
+        location.reload();
+      } else {
+        alert('실패: ' + (data.error || '오류'));
+      }
+    } catch (e) {
+      alert('오류: ' + e.message);
+    }
+  }
 </script>
+<style>
+.toggle-switch{position:relative;display:inline-block;width:52px;height:28px;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{
+  position:absolute;cursor:pointer;inset:0;
+  background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.3);
+  border-radius:28px;transition:.3s;
+}
+.toggle-slider:before{
+  position:absolute;content:"";height:22px;width:22px;left:2px;top:2px;
+  background:var(--danger2);border-radius:50%;transition:.3s;
+}
+.toggle-switch input:checked + .toggle-slider{
+  background:rgba(16,185,129,0.2);border-color:rgba(16,185,129,0.3);
+}
+.toggle-switch input:checked + .toggle-slider:before{
+  transform:translateX(24px);background:var(--success2);
+}
+</style>
 </body>
 </html>

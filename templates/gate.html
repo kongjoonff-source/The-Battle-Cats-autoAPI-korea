@@ -240,6 +240,14 @@ input:focus + .input-icon{color:var(--primary3)}
       <i class="fas fa-unlock"></i> 접근하기
     </button>
 
+    {% if key_purchase_enabled %}
+    <div style="margin-top:16px;text-align:center;">
+      <button class="btn-purchase" onclick="showPurchaseModal()" id="purchaseBtn">
+        <i class="fas fa-shopping-cart"></i> 키 구매하기
+      </button>
+    </div>
+    {% endif %}
+
     <div class="gate-footer">
       <a href="/admin">관리자 로그인</a>
     </div>
@@ -303,5 +311,195 @@ function showError(msg) {
   }, 3000);
 }
 </script>
+
+<!-- 구매 모달 -->
+<div class="purchase-modal" id="purchaseModal" style="display:none;">
+  <div class="purchase-modal-overlay" onclick="closePurchaseModal()"></div>
+  <div class="purchase-modal-content">
+    <div class="purchase-modal-header">
+      <h2><i class="fas fa-key"></i> 키 구매</h2>
+      <button class="modal-close" onclick="closePurchaseModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="purchase-modal-body">
+      <div class="purchase-plans">
+        {% for plan_id, plan_info in key_prices.items() %}
+        <div class="purchase-plan" onclick="selectPlan('{{ plan_id }}', {{ plan_info.price }}, '{{ plan_info.name }}')">
+          <div class="plan-icon">🔑</div>
+          <div class="plan-info">
+            <div class="plan-name">{{ plan_info.name }}</div>
+            <div class="plan-price">{{ plan_info.price|number_format }}원</div>
+          </div>
+          <div class="plan-radio" id="radio_{{ plan_id }}"></div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="purchase-depositor">
+        <label><i class="fas fa-user"></i> 입금자명</label>
+        <input type="text" id="depositorName" placeholder="입금자명을 입력하세요">
+      </div>
+
+      <div class="purchase-bank-info" id="bankInfo" style="display:none;">
+        <div class="bank-info-title"><i class="fas fa-university"></i> 입금 계좌</div>
+        <div class="bank-info-row">
+          <span class="bank-label">은행</span>
+          <span class="bank-value">{{ bank_name }}</span>
+        </div>
+        <div class="bank-info-row">
+          <span class="bank-label">계좌번호</span>
+          <span class="bank-value copy-account" onclick="copyAccount()">{{ bank_account }} <i class="fas fa-copy"></i></span>
+        </div>
+        <div class="bank-info-row">
+          <span class="bank-label">예금주</span>
+          <span class="bank-value">{{ account_holder }}</span>
+        </div>
+        <div class="bank-info-row">
+          <span class="bank-label">입금액</span>
+          <span class="bank-value" id="depositAmount" style="color:var(--accent);font-weight:800;"></span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="submitPurchase()" id="submitPurchaseBtn" style="margin-top:16px;">
+        <i class="fas fa-check"></i> 구매 요청
+      </button>
+
+      <div id="purchaseResult" style="display:none;margin-top:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+.btn-purchase{
+  background:linear-gradient(135deg,var(--cyan),var(--primary2));
+  color:#fff;border:none;padding:12px 24px;border-radius:12px;
+  font-size:.88rem;font-weight:800;cursor:pointer;
+  transition:all .25s;font-family:inherit;
+  display:inline-flex;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(6,182,212,0.4);
+}
+.btn-purchase:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(6,182,212,0.6);}
+
+.purchase-modal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;}
+.purchase-modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);}
+.purchase-modal-content{
+  position:relative;z-index:1;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:20px;max-width:440px;width:90%;max-height:90vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+.purchase-modal-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:20px;border-bottom:1px solid var(--border);
+}
+.purchase-modal-header h2{font-size:1.1rem;font-weight:800;color:var(--primary3);}
+.modal-close{
+  background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);
+  color:var(--danger);width:32px;height:32px;border-radius:8px;
+  cursor:pointer;font-size:1rem;transition:all .2s;
+}
+.modal-close:hover{background:var(--danger);color:#fff;}
+.purchase-modal-body{padding:20px;}
+.purchase-plans{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.purchase-plan{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,0.03);border:1.5px solid var(--border);
+  border-radius:12px;padding:14px;cursor:pointer;transition:all .25s;
+}
+.purchase-plan:hover{border-color:var(--primary2);background:rgba(168,85,247,0.05);}
+.purchase-plan.selected{border-color:var(--primary2);background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(168,85,247,0.08));box-shadow:0 0 16px rgba(168,85,247,0.2);}
+.plan-icon{font-size:1.8rem;}
+.plan-info{flex:1;}
+.plan-name{font-weight:800;font-size:.9rem;}
+.plan-price{color:var(--accent);font-weight:800;font-size:1.1rem;margin-top:2px;}
+.plan-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);transition:all .2s;}
+.purchase-plan.selected .plan-radio{border-color:var(--primary2);background:var(--primary2);box-shadow:0 0 8px rgba(168,85,247,0.5);}
+.purchase-depositor{margin-bottom:16px;}
+.purchase-depositor label{display:block;font-size:.78rem;color:var(--sub);margin-bottom:6px;font-weight:600;}
+.purchase-depositor input{
+  width:100%;padding:12px 14px;border-radius:10px;
+  border:1.5px solid var(--border);background:rgba(255,255,255,0.03);
+  color:var(--text);font-size:.9rem;outline:none;transition:all .3s;
+  font-family:inherit;
+}
+.purchase-depositor input:focus{border-color:var(--primary2);box-shadow:0 0 0 3px rgba(168,85,247,0.12);}
+.purchase-bank-info{
+  background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(6,182,212,0.04));
+  border:1px solid rgba(168,85,247,0.2);border-radius:12px;padding:16px;
+}
+.bank-info-title{font-weight:800;font-size:.88rem;color:var(--primary3);margin-bottom:12px;}
+.bank-info-row{display:flex;justify-content:space-between;padding:6px 0;font-size:.82rem;}
+.bank-label{color:var(--sub);}
+.bank-value{font-weight:700;}
+.copy-account{cursor:pointer;color:var(--cyan);transition:color .2s;}
+.copy-account:hover{color:var(--primary3);}
+</style>
+
+<script>
+let selectedPlan = null;
+let selectedPrice = 0;
+
+function showPurchaseModal() {
+  document.getElementById('purchaseModal').style.display = 'flex';
+}
+function closePurchaseModal() {
+  document.getElementById('purchaseModal').style.display = 'none';
+  document.getElementById('purchaseResult').style.display = 'none';
+}
+
+function selectPlan(planId, price, name) {
+  selectedPlan = planId;
+  selectedPrice = price;
+  document.querySelectorAll('.purchase-plan').forEach(p => p.classList.remove('selected'));
+  document.getElementById('radio_' + planId).parentElement.classList.add('selected');
+}
+
+function copyAccount() {
+  const text = '{{ bank_account }}';
+  navigator.clipboard.writeText(text).then(() => alert('계좌번호가 복사되었습니다: ' + text));
+}
+
+async function submitPurchase() {
+  if (!selectedPlan) { alert('구매할 키를 선택해주세요'); return; }
+  const depositor = document.getElementById('depositorName').value.trim();
+  if (!depositor) { alert('입금자명을 입력해주세요'); return; }
+
+  const btn = document.getElementById('submitPurchaseBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 처리 중...';
+
+  try {
+    const res = await fetch('/api/key-purchase/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ plan: selectedPlan, depositor_name: depositor })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      document.getElementById('bankInfo').style.display = 'block';
+      document.getElementById('depositAmount').textContent = data.price.toLocaleString() + '원';
+      const result = document.getElementById('purchaseResult');
+      result.style.display = 'block';
+      result.innerHTML = '<div style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(52,211,153,0.06));border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:16px;text-align:center;">' +
+        '<div style="font-size:1.5rem;margin-bottom:8px;">✅</div>' +
+        '<div style="font-weight:800;color:var(--success2);margin-bottom:8px;">구매 요청 완료!</div>' +
+        '<div style="font-size:.82rem;color:var(--sub);line-height:1.6;">' +
+        '아래 계좌로 <b style="color:var(--accent);">' + data.price.toLocaleString() + '원</b>을 입금해주세요.<br>' +
+        '입금자명: <b>' + depositor + '</b><br>' +
+        '관리자가 입금 확인 후 자동으로 키가 발급됩니다.<br>' +
+        '구매 ID: <b style="color:var(--primary3);">' + data.purchase_id + '</b>' +
+        '</div></div>';
+      btn.style.display = 'none';
+    } else {
+      alert(data.error || '구매 요청 실패');
+    }
+  } catch (e) {
+    alert('서버 연결 실패');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-check"></i> 구매 요청';
+}
+</script>
+
 </body>
 </html>
