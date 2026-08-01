@@ -579,11 +579,24 @@ def process_order_direct():
 @app.route("/admin/panel", methods=["GET", "POST"])
 def admin_panel():
     """관리자 로그인 + 대시보드 (통합)"""
-    # 로그인된 상태면 대시보드 표시
-    if session.get('admin') and request.method == "GET":
+    return admin_handler()
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin_root():
+    """관리자 /admin → /admin/panel로 리다이렉트"""
+    return admin_handler()
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login_alt():
+    """관리자 로그인 (대체 경로)"""
+    return admin_handler()
+
+def admin_handler():
+    """공통 관리자 처리"""
+    # GET + 로그인된 상태면 대시보드
+    if request.method == "GET" and session.get('admin'):
         return show_admin_dashboard()
-    
-    # 로그인 처리
+    # POST 처리
     if request.method == "POST":
         password = request.form.get("password", "")
         if password == ADMIN_PASSWORD:
@@ -591,7 +604,6 @@ def admin_panel():
             session['admin'] = True
             return redirect(url_for('admin_panel'))
         return render_template("admin_login.html", error="비밀번호가 틀렸습니다")
-    
     # 로그인 폼 표시
     return render_template("admin_login.html")
 
