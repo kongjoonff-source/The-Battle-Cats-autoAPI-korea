@@ -577,22 +577,57 @@ def process_order_direct():
 # ========== 라우트: 관리자 ==========
 
 @app.route("/admin/panel", methods=["GET", "POST"])
-def admin_login():
-    """관리자 로그인 (주소 직접 입력 시에만 접근 가능)"""
+def admin_panel():
+    """관리자 로그인 + 대시보드 (통합)"""
+    # 로그인된 상태면 대시보드 표시
+    if session.get('admin') and request.method == "GET":
+        return show_admin_dashboard()
+    
+    # 로그인 처리
     if request.method == "POST":
         password = request.form.get("password", "")
         if password == ADMIN_PASSWORD:
             session.permanent = True
             session['admin'] = True
-            return redirect(url_for('admin_panel_dashboard'))
+            return redirect(url_for('admin_panel'))
         return render_template("admin_login.html", error="비밀번호가 틀렸습니다")
+    
+    # 로그인 폼 표시
     return render_template("admin_login.html")
 
-@app.route("/admin/panel/dashboard")
-def admin_panel_dashboard():
-    """관리자 패널"""
-    if not session.get('admin'):
-        return redirect(url_for('admin_login'))
+def show_admin_dashboard():
+    """관리자 대시보드 내용 구성"""
+    orders = load_orders()
+    deposits = load_deposits()
+    prices = get_all_prices()
+    access_keys = load_access_keys()
+
+    # 만료 여부 표시
+    now = datetime.now()
+    for k in access_keys:
+        k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now
+
+    # 통계
+    total_orders = len(orders)
+    completed_orders = len([o for o in orders if o.get('status') == 'completed'])
+    pending_orders = len([o for o in orders if o.get('status') == 'pending'])
+    failed_orders = len([o for o in orders if o.get('status') == 'failed'])
+    total_revenue = sum(o.get('total_price', 0) for o in orders if o.get('status') == 'completed')
+
+    return render_template("admin.html",
+        orders=orders,
+        deposits=deposits,
+        prices=prices,
+        access_keys=access_keys,
+        total_orders=total_orders,
+        completed_orders=completed_orders,
+        pending_orders=pending_orders,
+        failed_orders=failed_orders,
+        total_revenue=total_revenue,
+        key_purchase_enabled=is_key_purchase_enabled(),
+        key_prices=KEY_PRICES,
+        key_purchases=load_key_purchases()
+    )
 
     orders = load_orders()
     deposits = load_deposits()
