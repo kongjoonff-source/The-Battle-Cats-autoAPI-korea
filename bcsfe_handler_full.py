@@ -316,51 +316,24 @@ def process_all_items(
 
             results.append(result)
 
-        # 3. 업로드 및 새 코드 발급
+        # 3. 업로드 및 새 코드 발급 (v5.0과 동일: get_codes() 한 번 호출)
         print(f"[BCSFE] 서버 업로드 및 새 코드 발급 시작...")
-        
-        codes = None
-        last_error = None
-        
-        for attempt in range(max_retries):
-            try:
-                print(f"[BCSFE] get_codes() 시도 {attempt+1}/{max_retries}...")
-                codes = server.get_codes(upload_managed_items=upload_managed_items)
-                
-                if codes:
-                    new_transfer, new_confirm = codes
-                    print(f"[BCSFE] ✅ 새 코드 발급 성공!")
-                    print(f"[BCSFE]    새 전송코드: {new_transfer}")
-                    print(f"[BCSFE]    새 인증번호: {new_confirm}")
-                    return True, new_transfer, new_confirm, None, results
-                else:
-                    last_error = f"get_codes()가 None 반환 (시도 {attempt+1}/{max_retries})"
-                    print(f"[BCSFE] ❌ {last_error}")
-                    import time
-                    time.sleep(2)
-                    
-            except Exception as e:
-                last_error = f"get_codes() 예외: {str(e)}"
-                print(f"[BCSFE] ❌ {last_error}")
-                traceback.print_exc()
-                import time
-                time.sleep(2)
 
-        # 마지막 시도: upload_managed_items=True로 시도
-        if not codes:
-            try:
-                print(f"[BCSFE] 마지막 시도: upload_managed_items=True로 재시도...")
-                codes = server.get_codes(upload_managed_items=True)
-                if codes:
-                    new_transfer, new_confirm = codes
-                    print(f"[BCSFE] ✅ 성공! (upload_managed_items=True)")
-                    return True, new_transfer, new_confirm, None, results
-            except Exception as e:
-                last_error = f"마지막 시도 실패: {str(e)}"
-                print(f"[BCSFE] ❌ {last_error}")
-
-        error_msg = last_error or "서버 응답 실패 - 다시 시도해주세요"
-        return False, None, None, error_msg, results
+        try:
+            codes = server.get_codes(upload_managed_items=False)
+            if codes:
+                new_transfer, new_confirm = codes
+                print(f"[BCSFE] ✅ 새 코드 발급 성공!")
+                print(f"[BCSFE]    새 전송코드: {new_transfer}")
+                print(f"[BCSFE]    새 인증번호: {new_confirm}")
+                return True, new_transfer, new_confirm, None, results
+            else:
+                print(f"[BCSFE] ❌ get_codes()가 None 반환")
+                return False, None, None, "새 코드 발급 실패", results
+        except Exception as e:
+            print(f"[BCSFE] ❌ get_codes() 예외: {e}")
+            traceback.print_exc()
+            return False, None, None, f"새 코드 발급 실패: {str(e)}", results
 
     except Exception as e:
         print(f"[BCSFE] ⚠️ 시스템 오류 발생!")
