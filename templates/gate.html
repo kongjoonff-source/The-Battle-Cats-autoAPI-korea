@@ -249,7 +249,7 @@ input:focus + .input-icon{color:var(--primary3)}
     {% endif %}
 
     <div class="gate-footer">
-      <a href="/admin">관리자 로그인</a>
+      <span>© 2026 NYANKO CHARGE</span>
     </div>
   </div>
 </div>
@@ -486,7 +486,7 @@ async function submitPurchase() {
         '<div style="font-size:.82rem;color:var(--sub);line-height:1.6;">' +
         '아래 계좌로 <b style="color:var(--accent);">' + data.price.toLocaleString() + '원</b>을 입금해주세요.<br>' +
         '입금자명: <b>' + depositor + '</b><br>' +
-        '관리자가 입금 확인 후 자동으로 키가 발급됩니다.<br>' +
+        '입금 확인 후 <b style="color:var(--success2);">자동으로 키가 발급</b>됩니다.<br>' +
         '구매 ID: <b style="color:var(--primary3);">' + data.purchase_id + '</b>' +
         '</div></div>';
       btn.style.display = 'none';

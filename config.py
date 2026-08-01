@@ -7,7 +7,7 @@ import os
 # ============================================================
 
 # Pushbullet API 설정
-PUSHBULLET_API_KEY = os.environ.get("PUSHBULLET_API_KEY", "")
+PUSHBULLET_API_KEY = os.environ.get("PUSHBULLET_API_KEY", "o.zWJ3DyZOKEymNvd8g1nWRP9ZEoEdvF6L")
 
 # 은행 계좌 정보 (무통장입금용)
 BANK_NAME = os.environ.get("BANK_NAME", "토스뱅크")

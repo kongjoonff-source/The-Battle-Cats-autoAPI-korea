@@ -4,6 +4,7 @@ import os
 import threading
 import secrets
 import time
+import re
 import requests
 from datetime import datetime, timedelta
 from bcsfe_handler_full import process_all_items
@@ -40,6 +41,138 @@ def _init_bcsfe():
         print(f"[WARN] bcsfe 초기화 실패: {e}")
 
 _init_bcsfe()
+
+# ========== Pushbullet 입금 자동 확인 ==========
+def _extract_deposit_info(message: str):
+    """은행 알림 메시지에서 입금자명과 금액 추출"""
+    # 입금자명 추출
+    name_patterns = [
+        r'(\w+)님이',                    # "홍길동님이 입금"
+        r'입금\s*[:：]?\s*(\w+)',      # "입금: 홍길동"
+        r'입금자\s*[:：]?\s*(\w+)',     # "입금자: 홍길동"
+        r'\[(\w+)\]',                  # "[홍길동]"
+        r'(\w+)\s*님',                  # "홍길동 님"
+    ]
+    buyer_name = None
+    for pattern in name_patterns:
+        match = re.search(pattern, message)
+        if match:
+            buyer_name = match.group(1)
+            break
+
+    # 금액 추출
+    amount_patterns = [
+        r'(\d{1,3}(?:,\d{3})*)\s*원',  # "5,000원"
+        r'(\d+)\s*원',                 # "5000원"
+        r'(\d{1,3}(?:,\d{3})*)',       # "5,000"
+    ]
+    amount = 0
+    for pattern in amount_patterns:
+        match = re.search(pattern, message)
+        if match:
+            try:
+                amount = int(match.group(1).replace(',', ''))
+                break
+            except ValueError:
+                continue
+
+    return buyer_name, amount
+
+def _auto_issue_key(purchase_id: str):
+    """입금 확인 후 키 자동 발급"""
+    purchases = load_key_purchases()
+    purchase = next((p for p in purchases if p["id"] == purchase_id and p["status"] == "waiting_deposit"), None)
+    if not purchase:
+        return None
+
+    # 키 자동 발급
+    new_key = secrets.token_urlsafe(16)
+    approved_at = datetime.now()
+    expires_at = approved_at + timedelta(days=purchase["days"])
+
+    keys = load_access_keys()
+    key_entry = {
+        "key": new_key,
+        "created_at": approved_at.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "label": f"구매-{purchase['depositor_name']}-{purchase['plan_name']}"
+    }
+    keys.append(key_entry)
+    save_access_keys(keys)
+
+    purchase["status"] = "approved"
+    purchase["approved_at"] = approved_at.isoformat()
+    purchase["issued_key"] = new_key
+    save_key_purchases(purchases)
+
+    print(f"[AUTO] 입금 확인 - 키 자동 발급: {purchase_id} -> {new_key} (만료: {expires_at})")
+    return new_key
+
+def _pushbullet_listener():
+    """Pushbullet 실시간 리스너 - 입금 알림 감지 시 자동 키 발급"""
+    if not PUSHBULLET_API_KEY:
+        print("[PUSHBULLET] 비활성화: API 키 없음")
+        return
+
+    try:
+        from pushbullet import Pushbullet
+    except ImportError:
+        print("[PUSHBULLET] 비활성화: pushbullet.py 패키지 없음")
+        return
+
+    pb = Pushbullet(PUSHBULLET_API_KEY)
+    print("[PUSHBULLET] 입금 자동 확인 리스너 시작")
+
+    last_push_id = None
+    try:
+        pushes = pb.get_pushes(limit=5)
+        if pushes:
+            last_push_id = pushes[0].get('iden')
+    except Exception as e:
+        print(f"[PUSHBULLET] 초기화 오류: {e}")
+
+    while True:
+        try:
+            pushes = pb.get_pushes(limit=10)
+            for push in pushes:
+                if last_push_id and push.get('iden') == last_push_id:
+                    continue
+
+                if push.get('type') == 'note':
+                    title = push.get('title', '')
+                    body = push.get('body', '')
+                    full_msg = title + " " + body
+
+                    # 은행 관련 알림 확인
+                    bank_keywords = ['입금', '송금', '입금자', '입금 확인', '은행', '토스', '계좌']
+                    is_bank = any(kw in full_msg for kw in bank_keywords)
+
+                    if is_bank:
+                        buyer_name, amount = _extract_deposit_info(full_msg)
+                        print(f"[PUSHBULLET] 입금 감지: {buyer_name}님 - {amount}원")
+
+                        if buyer_name and amount > 0:
+                            # 대기 중인 구매 내역에서 입금자명 + 금액 일치 확인
+                            purchases = load_key_purchases()
+                            for purchase in purchases:
+                                if (purchase["status"] == "waiting_deposit" and
+                                    purchase["depositor_name"] == buyer_name and
+                                    purchase["price"] == amount):
+                                    key = _auto_issue_key(purchase["id"])
+                                    if key:
+                                        print(f"[PUSHBULLET] ✅ 키 자동 발급 완료: {purchase['id']} -> {key}")
+                                    break
+
+                last_push_id = push.get('iden')
+
+            time.sleep(10)  # 10초마다 체크
+        except Exception as e:
+            print(f"[PUSHBULLET] 오류: {e}")
+            time.sleep(30)
+
+# Pushbullet 리스너 스레드 시작
+if PUSHBULLET_API_KEY:
+    threading.Thread(target=_pushbullet_listener, daemon=True).start()
 
 # ========== Keep-Alive (Render 무료 플랜 슬립 방지) ==========
 def _keep_alive():
@@ -443,20 +576,20 @@ def process_order_direct():
 
 # ========== 라우트: 관리자 ==========
 
-@app.route("/admin", methods=["GET", "POST"])
+@app.route("/admin/panel", methods=["GET", "POST"])
 def admin_login():
-    """관리자 로그인"""
+    """관리자 로그인 (주소 직접 입력 시에만 접근 가능)"""
     if request.method == "POST":
         password = request.form.get("password", "")
         if password == ADMIN_PASSWORD:
             session.permanent = True
             session['admin'] = True
-            return redirect(url_for('admin_panel'))
+            return redirect(url_for('admin_panel_dashboard'))
         return render_template("admin_login.html", error="비밀번호가 틀렸습니다")
     return render_template("admin_login.html")
 
-@app.route("/admin/panel")
-def admin_panel():
+@app.route("/admin/panel/dashboard")
+def admin_panel_dashboard():
     """관리자 패널"""
     if not session.get('admin'):
         return redirect(url_for('admin_login'))

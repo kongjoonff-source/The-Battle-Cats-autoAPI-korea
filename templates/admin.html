@@ -417,16 +417,16 @@ tbody tr:hover{background:rgba(168,85,247,0.04);}
     </div>
   </div>
 
-  <!-- 키 구매 대기 목록 -->
+  <!-- 키 구매 내역 -->
   <div class="card" id="purchaseListCard">
-    <div class="card-title"><i class="fas fa-clock"></i>입금 대기 중인 구매</div>
+    <div class="card-title"><i class="fas fa-clock"></i>키 구매 내역 (자동 발급)</div>
     <div class="table-container">
       <table>
         <thead>
-          <tr><th>구매ID</th><th>플랜</th><th>입금자</th><th>금액</th><th>요청일</th><th>관리</th></tr>
+          <tr><th>구매ID</th><th>플랜</th><th>입금자</th><th>금액</th><th>요청일</th><th>상태</th></tr>
         </thead>
         <tbody id="purchaseList">
-          {% for p in key_purchases if p.status == 'waiting_deposit' %}
+          {% for p in key_purchases %}
           <tr>
             <td class="small">{{ p.id }}</td>
             <td>{{ p.plan_name }}</td>
@@ -434,14 +434,16 @@ tbody tr:hover{background:rgba(168,85,247,0.04);}
             <td style="color:var(--accent);font-weight:800;">{{ p.price|number_format }}원</td>
             <td class="small">{{ p.created_at[:19].replace('T',' ') }}</td>
             <td>
-              <button class="btn-action btn-copy" onclick="approvePurchase('{{ p.id }}')">
-                <i class="fas fa-check"></i> 입금확인
-              </button>
+              {% if p.status == 'approved' %}
+              <span style="color:var(--success2);font-weight:800;"><i class="fas fa-check-circle"></i> 발급완료</span>
+              {% else %}
+              <span style="color:var(--accent);font-weight:800;"><i class="fas fa-clock"></i> 입금대기</span>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
-          {% if not key_purchases or not key_purchases|selectattr('status','equalto','waiting_deposit')|list %}
-          <tr><td colspan="6"><div class="empty-state"><i class="fas fa-inbox"></i>대기 중인 구매가 없습니다</div></td></tr>
+          {% if not key_purchases %}
+          <tr><td colspan="6"><div class="empty-state"><i class="fas fa-inbox"></i>구매 내역이 없습니다</div></td></tr>
           {% endif %}
         </tbody>
       </table>
