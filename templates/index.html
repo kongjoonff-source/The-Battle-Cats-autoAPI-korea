@@ -256,8 +256,8 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 .spinner{display:inline-block;width:16px;height:16px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-right-color:var(--primary2);border-radius:50%;animation:spin .8s linear}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.result-box{display:none;padding:20px;border-radius:16px;margin-top:16px;z-index:9999 !important;position:relative;}
-.result-box.show{display:block !important;animation:resultIn .5s cubic-bezier(.34,1.56,.64,1)}
+.result-box{display:none;padding:20px;border-radius:16px;margin-top:16px}
+.result-box.show{display:block;animation:resultIn .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes resultIn{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 .result-box.success{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(6,182,212,0.08));border:2px solid rgba(16,185,129,0.4);box-shadow:0 0 40px rgba(16,185,129,0.3)}
 .result-box.error{background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(236,72,153,0.08));border:2px solid rgba(239,68,68,0.4);box-shadow:0 0 40px rgba(239,68,68,0.3)}
@@ -434,44 +434,23 @@ function startPolling(orderId){
 }
 
 function showResult(order){
-  console.log('showResult 호출됨', order);
-  console.log('order.status:', order.status);
-  console.log('order.result:', order.result);
   const rb=document.getElementById('resultBox'); const rt=document.getElementById('resultTitle'); const rc=document.getElementById('resultContent');
-  console.log('요소 찾음:', {rb: !!rb, rt: !!rt, rc: !!rc});
-  if (!rb || !rt || !rc) {
-    console.error('결과 표시 요소를 찾을 수 없습니다');
-    return;
-  }
-  console.log('표시 전 상태:', {display: rb.style.display, visibility: rb.style.visibility, opacity: rb.style.opacity});
   rb.className='result-box show '+(order.status==='completed'?'success':'error');
-  rb.style.display='block';
-  rb.style.visibility='visible';
-  rb.style.opacity='1';
-  console.log('표시 후 상태:', {display: rb.style.display, visibility: rb.style.visibility, opacity: rb.style.opacity});
   if (order.status==='completed'){
-    const r=order.result||{};
-    console.log('result data', r);
+    const r=order.result;
     rt.innerHTML='<i class="fas fa-check-circle"></i> 충전 완료!';
     confetti();
-    const newTc = r.new_transfer_code || 'N/A';
-    const newCc = r.new_confirmation_code || 'N/A';
     let d='';
     if (r.details && r.details.length){d='<div style="margin-top:10px;font-size:.75rem;color:var(--sub);">'; r.details.forEach(x=>d+='<div>'+(x.success?'✅':'❌')+' '+x.message+'</div>'); d+='</div>';}
     rc.innerHTML='<div style="font-weight:800;color:var(--success);margin-bottom:8px;font-size:1rem;">🚀 새 코드 발급 완료!</div>'+
-      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 전송코드</div><div id="newTc" style="font-weight:800;color:var(--success);font-size:1.2rem;text-shadow:0 0 12px rgba(16,185,129,0.6);">'+newTc+'</div></div>'+
-      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 인증번호</div><div id="newCc" style="font-weight:800;color:var(--primary2);font-size:1.2rem;text-shadow:0 0 12px rgba(168,85,247,0.6);">'+newCc+'</div></div>'+
+      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 전송코드</div><div style="font-weight:800;color:var(--success);font-size:1.1rem;text-shadow:0 0 10px rgba(16,185,129,0.5);">'+(r.new_transfer_code||'N/A')+'</div></div>'+
+      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 인증번호</div><div style="font-weight:800;color:var(--primary2);font-size:1.1rem;text-shadow:0 0 10px rgba(168,85,247,0.5);">'+(r.new_confirmation_code||'N/A')+'</div></div>'+
       d+'<button class="btn btn-success" onclick="saveAsImage()" style="margin-top:14px;"><i class="fas fa-image"></i> 이미지로 저장</button>';
   } else {
     rt.innerHTML='<i class="fas fa-times-circle"></i> 충전 실패';
     rc.innerHTML='<div style="color:var(--sub);font-size:.82rem;">'+(order.result?.error||'오류')+'</div>';
   }
-  rb.style.display='block';
-  setTimeout(()=>{
-    console.log('스크롤 실행');
-    rb.scrollIntoView({behavior: 'smooth', block: 'center'});
-  }, 200);
-  console.log('showResult 완료');
+  rb.scrollIntoView({behavior:'smooth'});
 }
 
 function saveAsImage(){
