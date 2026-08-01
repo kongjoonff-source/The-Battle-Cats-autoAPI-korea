@@ -21,7 +21,7 @@ input:focus{border-color:#a855f7;box-shadow:0 0 0 4px rgba(168,85,247,0.12)}
 <div class="login-box">
   <h1>관리자 로그인</h1>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
-  <form method="POST" action="/admin/panel">
+  <form method="POST" action="/admin">
     <div class="input-wrap"><input type="password" name="password" placeholder="비밀번호" autocomplete="off"></div>
     <button class="btn" type="submit">로그인</button>
   </form>
