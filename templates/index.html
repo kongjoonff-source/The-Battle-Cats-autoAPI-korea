@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🚀 우주 충전소 v10.0</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<title>🐱 냥코 자동충전 시스템 v10.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -27,7 +27,7 @@ html{scroll-behavior:smooth}
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:'Orbitron',monospace;
+  font-family:'Exo 2',sans-serif;
   min-height:100vh;
   overflow-x:hidden;
   position:relative;
@@ -185,7 +185,7 @@ body::after{
 .item-qty button:hover{background:var(--accent);border-color:var(--accent);transform:scale(1.15) rotate(90deg);box-shadow:0 0 16px rgba(6,182,212,0.6)}
 .item-qty span{font-size:.9rem;font-weight:800;color:var(--accent);min-width:24px;text-align:center;text-shadow:0 0 10px rgba(6,182,212,0.5)}
 .cat-inputs{margin-top:10px;position:relative;z-index:1}
-.cat-inputs input,.cat-inputs label{display:block;width:100%;padding:8px 10px;font-size:.7rem;text-align:center;border-radius:8px;border:1.5px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);outline:none;margin-top:4px;font-family:'Orbitron',monospace}
+.cat-inputs input,.cat-inputs label{display:block;width:100%;padding:8px 10px;font-size:.7rem;text-align:center;border-radius:8px;border:1.5px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);outline:none;margin-top:4px;font-family:'Exo 2',sans-serif}
 .cat-inputs input:focus{border-color:var(--accent);box-shadow:0 0 12px rgba(6,182,212,0.4)}
 
 .cart-items{margin-top:12px}
@@ -227,7 +227,7 @@ input,textarea,select{
   width:100%;padding:14px 16px 14px 44px;border-radius:12px;
   border:2px solid var(--border);background:rgba(0,0,0,0.3);
   color:var(--text);outline:none;font-size:.85rem;
-  font-family:'Orbitron',monospace;transition:all .3s;letter-spacing:.5px;
+  font-family:'Exo 2',sans-serif;transition:all .3s;letter-spacing:.5px;
 }
 input::placeholder{color:var(--sub);font-size:.78rem;letter-spacing:0}
 input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(6,182,212,0.2),0 0 24px rgba(6,182,212,0.3);background:rgba(6,182,212,0.05)}
@@ -239,7 +239,7 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
   padding:16px 24px;border-radius:14px;border:none;
   font-size:.95rem;font-weight:800;cursor:pointer;
   transition:all .3s cubic-bezier(.34,1.56,.64,1);
-  width:100%;font-family:'Orbitron',monospace;
+  width:100%;font-family:'Exo 2',sans-serif;
   position:relative;overflow:hidden;letter-spacing:1px;
 }
 .btn:active{transform:scale(.96)}
@@ -276,12 +276,12 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 <body>
 <div class="container">
   <header class="header">
-    <div class="logo">🚀 SPACE CHARGE <span class="badge">v10.0</span></div>
+    <div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v10.0</span></div>
   </header>
 
   <div class="hero">
-    <h1>우주 충전소</h1>
-    <p>⭐ BCSFE ULTIMATE — 전체 기능 무료 충전 ⭐</p>
+    <h1>냥코 자동충전 시스템</h1>
+    <p>⚡ BCSFE ULTIMATE — 전체 기능 자동 충전 ⚡</p>
   </div>
 
   <div class="card">
@@ -464,26 +464,26 @@ function saveAsImage(){
   grad.addColorStop(0,'#000010'); grad.addColorStop(0.5,'#0a0a1a'); grad.addColorStop(1,'#000010');
   ctx.fillStyle=grad; ctx.fillRect(0,0,800,500);
   ctx.strokeStyle='rgba(168,85,247,0.6)'; ctx.lineWidth=3; ctx.strokeRect(10,10,780,480);
-  ctx.fillStyle='#a855f7'; ctx.font='bold 30px Orbitron,sans-serif'; ctx.textAlign='center';
-  ctx.fillText('🚀 SPACE CHARGE v10.0',400,55);
-  ctx.fillStyle='#06b6d4'; ctx.font='18px Orbitron,sans-serif';
+  ctx.fillStyle='#a855f7'; ctx.font='bold 28px Exo 2,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('NYANKO AUTO CHARGE v10.0',400,55);
+  ctx.fillStyle='#06b6d4'; ctx.font='16px Exo 2,sans-serif';
   ctx.fillText('BCSFE ULTIMATE',400,95);
   ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.strokeStyle='rgba(168,85,247,0.4)'; ctx.lineWidth=2;
   roundRect(ctx,40,120,720,140,16); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Orbitron,sans-serif'; ctx.textAlign='left';
+  ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Exo 2,sans-serif'; ctx.textAlign='left';
   ctx.fillText('NEW TRANSFER CODE',60,155);
   ctx.fillStyle='#34d399'; ctx.font='bold 24px monospace'; ctx.textAlign='center';
   ctx.fillText(newTc,400,225);
   ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.strokeStyle='rgba(168,85,247,0.4)';
   roundRect(ctx,40,290,720,140,16); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Orbitron,sans-serif'; ctx.textAlign='left';
+  ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Exo 2,sans-serif'; ctx.textAlign='left';
   ctx.fillText('NEW CONFIRMATION CODE',60,325);
   ctx.fillStyle='#a855f7'; ctx.font='bold 24px monospace'; ctx.textAlign='center';
   ctx.fillText(newCc,400,395);
   canvas.toBlob(blob=>{
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.download='space-codes-'+Date.now()+'.png'; a.href=url; a.click();
+    a.download='nyanko-codes-'+Date.now()+'.png'; a.href=url; a.click();
     toast('저장 완료','우주 스타일 이미지가 저장되었습니다.','var(--success)');
   },'image/png');
 }
