@@ -280,12 +280,14 @@ function saveCatId(id, val) { cart[id+'_catId'] = val; renderCart(); }
 function saveLevels(id, type, val) { cart[id+'_'+type+'Lv'] = val; renderCart(); }
 
 function toggleItem(id, e) {
+  console.log('toggleItem called:', id, 'cart before:', cart);
   if (cart[id]) {
     delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv'];
   } else {
     cart[id] = 1;
     if (e) { const rect = e.currentTarget.getBoundingClientRect(); particleBurst(rect.left + rect.width/2, rect.top + rect.height/2); }
   }
+  console.log('cart after:', cart);
   renderItems(); renderCart(); updateTotal();
 }
 
