@@ -256,8 +256,8 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 .spinner{display:inline-block;width:16px;height:16px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-right-color:var(--primary2);border-radius:50%;animation:spin .8s linear}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.result-box{display:none;padding:20px;border-radius:16px;margin-top:16px}
-.result-box.show{display:block;animation:resultIn .5s cubic-bezier(.34,1.56,.64,1)}
+.result-box{display:none;padding:20px;border-radius:16px;margin-top:16px;z-index:9999 !important;position:relative;}
+.result-box.show{display:block !important;animation:resultIn .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes resultIn{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 .result-box.success{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(6,182,212,0.08));border:2px solid rgba(16,185,129,0.4);box-shadow:0 0 40px rgba(16,185,129,0.3)}
 .result-box.error{background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(236,72,153,0.08));border:2px solid rgba(239,68,68,0.4);box-shadow:0 0 40px rgba(239,68,68,0.3)}
@@ -436,7 +436,14 @@ function startPolling(orderId){
 function showResult(order){
   console.log('showResult', order);
   const rb=document.getElementById('resultBox'); const rt=document.getElementById('resultTitle'); const rc=document.getElementById('resultContent');
+  if (!rb || !rt || !rc) {
+    console.error('결과 표시 요소를 찾을 수 없습니다');
+    return;
+  }
   rb.className='result-box show '+(order.status==='completed'?'success':'error');
+  rb.style.display='block';
+  rb.style.visibility='visible';
+  rb.style.opacity='1';
   if (order.status==='completed'){
     const r=order.result||{};
     console.log('result data', r);
