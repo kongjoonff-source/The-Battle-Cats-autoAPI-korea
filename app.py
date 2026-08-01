@@ -512,7 +512,7 @@ def process_order_direct():
     order = next((o for o in orders if o["id"] == order_id and o["status"] == "pending"), None)
 
     if not order:
-        return jsonify({"error": "주문 없음"}), 404
+        return jsonify({"error": "주문 없음 또는 이미 처리 중"}), 404
 
     order["status"] = "processing"
     save_orders(orders)
