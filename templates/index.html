@@ -434,22 +434,27 @@ function startPolling(orderId){
 }
 
 function showResult(order){
+  console.log('showResult', order);
   const rb=document.getElementById('resultBox'); const rt=document.getElementById('resultTitle'); const rc=document.getElementById('resultContent');
   rb.className='result-box show '+(order.status==='completed'?'success':'error');
   if (order.status==='completed'){
-    const r=order.result;
+    const r=order.result||{};
+    console.log('result data', r);
     rt.innerHTML='<i class="fas fa-check-circle"></i> 충전 완료!';
     confetti();
+    const newTc = r.new_transfer_code || 'N/A';
+    const newCc = r.new_confirmation_code || 'N/A';
     let d='';
     if (r.details && r.details.length){d='<div style="margin-top:10px;font-size:.75rem;color:var(--sub);">'; r.details.forEach(x=>d+='<div>'+(x.success?'✅':'❌')+' '+x.message+'</div>'); d+='</div>';}
     rc.innerHTML='<div style="font-weight:800;color:var(--success);margin-bottom:8px;font-size:1rem;">🚀 새 코드 발급 완료!</div>'+
-      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 전송코드</div><div style="font-weight:800;color:var(--success);font-size:1.1rem;text-shadow:0 0 10px rgba(16,185,129,0.5);">'+(r.new_transfer_code||'N/A')+'</div></div>'+
-      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 인증번호</div><div style="font-weight:800;color:var(--primary2);font-size:1.1rem;text-shadow:0 0 10px rgba(168,85,247,0.5);">'+(r.new_confirmation_code||'N/A')+'</div></div>'+
+      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 전송코드</div><div id="newTc" style="font-weight:800;color:var(--success);font-size:1.1rem;text-shadow:0 0 10px rgba(16,185,129,0.5);">'+newTc+'</div></div>'+
+      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 인증번호</div><div id="newCc" style="font-weight:800;color:var(--primary2);font-size:1.1rem;text-shadow:0 0 10px rgba(168,85,247,0.5);">'+newCc+'</div></div>'+
       d+'<button class="btn btn-success" onclick="saveAsImage()" style="margin-top:14px;"><i class="fas fa-image"></i> 이미지로 저장</button>';
   } else {
     rt.innerHTML='<i class="fas fa-times-circle"></i> 충전 실패';
     rc.innerHTML='<div style="color:var(--sub);font-size:.82rem;">'+(order.result?.error||'오류')+'</div>';
   }
+  rb.style.display='block';
   rb.scrollIntoView({behavior:'smooth'});
 }
 
