@@ -62,19 +62,16 @@ def process_all_items(
         gv = GameVersion.from_string("12.5.0")
         print(f"[BCSFE] CountryCode: {cc}, GameVersion: {gv}")
 
-        # 1. 다운로드 - 전송코드로 세이브 가져오기
+        # 1. 다운로드 - 전송코드로 세이브 가져오기 (v5와 동일: print=False)
         print(f"[BCSFE] ServerHandler.from_codes() 호출...")
         server, req_result = ServerHandler.from_codes(
             transfer_code, confirmation_code, cc, gv,
-            print=True, save_backup=False
+            print=False, save_backup=False
         )
 
         if server is None:
-            error_detail = f"세이브 다운로드 실패 - 코드를 확인해주세요"
-            if req_result is not None:
-                error_detail += f" (Response: {req_result.response.status_code if req_result.response else 'N/A'})"
-            print(f"[BCSFE] ❌ {error_detail}")
-            return False, None, None, error_detail, []
+            print(f"[BCSFE] ❌ 세이브 다운로드 실패 - 코드를 확인해주세요")
+            return False, None, None, "세이브 다운로드 실패 - 코드를 확인해주세요", []
 
         save_file = server.save_file
         print(f"[BCSFE] ✅ 세이브 다운로드 성공")
