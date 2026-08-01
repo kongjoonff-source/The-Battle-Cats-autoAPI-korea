@@ -597,37 +597,7 @@ def admin_panel():
 
 def show_admin_dashboard():
     """관리자 대시보드 내용 구성"""
-    orders = load_orders()
-    deposits = load_deposits()
-    prices = get_all_prices()
-    access_keys = load_access_keys()
 
-    # 만료 여부 표시
-    now = datetime.now()
-    for k in access_keys:
-        k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now
-
-    # 통계
-    total_orders = len(orders)
-    completed_orders = len([o for o in orders if o.get('status') == 'completed'])
-    pending_orders = len([o for o in orders if o.get('status') == 'pending'])
-    failed_orders = len([o for o in orders if o.get('status') == 'failed'])
-    total_revenue = sum(o.get('total_price', 0) for o in orders if o.get('status') == 'completed')
-
-    return render_template("admin.html",
-        orders=orders,
-        deposits=deposits,
-        prices=prices,
-        access_keys=access_keys,
-        total_orders=total_orders,
-        completed_orders=completed_orders,
-        pending_orders=pending_orders,
-        failed_orders=failed_orders,
-        total_revenue=total_revenue,
-        key_purchase_enabled=is_key_purchase_enabled(),
-        key_prices=KEY_PRICES,
-        key_purchases=load_key_purchases()
-    )
 
     orders = load_orders()
     deposits = load_deposits()
@@ -665,7 +635,7 @@ def show_admin_dashboard():
 def admin_logout():
     """관리자 로그아웃"""
     session.pop('admin', None)
-    return redirect(url_for('admin_login'))
+    return redirect(url_for('admin_panel'))
 
 @app.route("/admin/update-prices", methods=["POST"])
 def admin_update_prices():
