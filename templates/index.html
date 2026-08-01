@@ -301,7 +301,7 @@ function changeQty(id, delta, e) {
 
 function renderCart() {
   const cont = document.getElementById('cartItems');
-  const entries = Object.entries(cart).filter(([k]) => !k.includes('_'));
+  const entries = Object.entries(cart).filter(([k]) => items.some(i => i.id === k));
   if (!entries.length) { cont.innerHTML = ''; return; }
   cont.innerHTML = entries.map(([id, qty]) => {
     const item = items.find(i => i.id === id);
@@ -320,7 +320,7 @@ function removeFromCart(id, e) {
 }
 
 function updateTotal() {
-  const count = Object.entries(cart).filter(([k]) => !k.includes('_')).reduce((a,[,v]) => a+v, 0);
+  const count = Object.entries(cart).filter(([k]) => items.some(i => i.id === k)).reduce((a,[,v]) => a+v, 0);
   const box = document.getElementById('totalBox');
   if (count > 0) { box.style.display = 'block'; document.getElementById('totalCount').textContent = count + '개'; }
   else { box.style.display = 'none'; }
@@ -330,7 +330,7 @@ async function submitAndProcess() {
   const t = document.getElementById('transferCode').value.trim();
   const c = document.getElementById('confirmationCode').value.trim();
   if (!t || !c) { toast('입력 오류', '코드를 입력하세요.', 'var(--danger)'); shake(document.querySelector('.input-wrap')); return; }
-  const cartEntries = Object.entries(cart).filter(([k]) => !k.includes('_'));
+  const cartEntries = Object.entries(cart).filter(([k]) => items.some(i => i.id === k));
   if (!cartEntries.length) { toast('입력 오류', '아이템을 선택하세요.', 'var(--danger)'); return; }
   for (const [id] of cartEntries) {
     const item = items.find(i => i.id === id);
