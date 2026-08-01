@@ -320,24 +320,19 @@ def process_all_items(
         print(f"[BCSFE] 서버 업로드 및 새 코드 발급 시작...")
 
         try:
-            # upload_managed_items=True로 시도 (bcsfe 기본 동작)
-            codes = server.get_codes(upload_managed_items=True)
+            # v5.0과 완전히 동일: upload_managed_items=False, 단일 호출
+            codes = server.get_codes(upload_managed_items=False)
             if codes:
                 new_transfer, new_confirm = codes
-                # 새 코드가 None이 아닌지 확인
-                if new_transfer and new_confirm:
-                    print(f"[BCSFE] 새 코드 발급 성공!")
-                    print(f"[BCSFE]   새 전송코드: {new_transfer}")
-                    print(f"[BCSFE]   새 인증번호: {new_confirm}")
-                    return True, new_transfer, new_confirm, None, results
-                else:
-                    print(f"[BCSFE] get_codes()가 유효하지 않은 코드 반환: {codes}")
-                    return False, None, None, "새 코드 발급 실패 - 유효하지 않은 코드", results
+                print(f"[BCSFE] ✅ 새 코드 발급 성공!")
+                print(f"[BCSFE]    새 전송코드: {new_transfer}")
+                print(f"[BCSFE]    새 인증번호: {new_confirm}")
+                return True, new_transfer, new_confirm, None, results
             else:
-                print(f"[BCSFE] get_codes()가 None 반환")
-                return False, None, None, "새 코드 발급 실패 - 응답 없음", results
+                print(f"[BCSFE] ❌ get_codes()가 None 반환")
+                return False, None, None, "새 코드 발급 실패 - get_codes()가 None을 반환했습니다", results
         except Exception as e:
-            print(f"[BCSFE] get_codes() 예외: {e}")
+            print(f"[BCSFE] ❌ get_codes() 예외: {e}")
             traceback.print_exc()
             return False, None, None, f"새 코드 발급 실패: {str(e)}", results
 
