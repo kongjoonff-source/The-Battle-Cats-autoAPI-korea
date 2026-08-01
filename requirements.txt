@@ -1,5 +1,5 @@
-flask==3.0.3
-gunicorn==22.0.0
-pushbullet.py==0.12.0
-bcsfe==3.5.2
-requests==2.32.3
+flask
+gunicorn
+pushbullet.py
+bcsfe
+requests

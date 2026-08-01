@@ -11,8 +11,7 @@ from config import (
     PUSHBULLET_API_KEY, BANK_NAME, BANK_ACCOUNT, ACCOUNT_HOLDER,
     CATFOOD_PRICES, XP_PRICES, TICKET_PRICES,
     DATA_DIR, SERVER_HOST, SERVER_PORT, SERVER_DEBUG,
-    ADMIN_PASSWORD, ADMIN_ALLOWED_IPS, SECRET_KEY,
-    KEY_PURCHASE_ENABLED, KEY_PRICES
+    ADMIN_PASSWORD, ADMIN_ALLOWED_IPS, SECRET_KEY
 )
 
 app = Flask(__name__)
@@ -61,8 +60,6 @@ ORDERS_FILE = os.path.join(DATA_DIR, "orders.json")
 DEPOSITS_FILE = os.path.join(DATA_DIR, "deposits.json")
 PRICES_FILE = os.path.join(DATA_DIR, "prices.json")
 ACCESS_KEYS_FILE = os.path.join(DATA_DIR, "access_keys.json")
-KEY_PURCHASES_FILE = os.path.join(DATA_DIR, "key_purchases.json")
-SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 
 # ========== 데이터 로드/저장 ==========
 
@@ -95,33 +92,6 @@ def load_access_keys():
 def save_access_keys(keys):
     with open(ACCESS_KEYS_FILE, "w", encoding="utf-8") as f:
         json.dump(keys, f, ensure_ascii=False, indent=2)
-
-
-
-def load_key_purchases():
-    if os.path.exists(KEY_PURCHASES_FILE):
-        with open(KEY_PURCHASES_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-def save_key_purchases(purchases):
-    with open(KEY_PURCHASES_FILE, "w", encoding="utf-8") as f:
-        json.dump(purchases, f, ensure_ascii=False, indent=2)
-
-def load_settings():
-    defaults = {"key_purchase_enabled": KEY_PURCHASE_ENABLED}
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-            saved = json.load(f)
-            defaults.update(saved)
-    return defaults
-
-def save_settings(settings):
-    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(settings, f, ensure_ascii=False, indent=2)
-
-def is_key_purchase_enabled():
-    return load_settings().get("key_purchase_enabled", KEY_PURCHASE_ENABLED)
 
 def is_key_valid(key):
     """키가 존재하고 만료되지 않았는지 확인"""
@@ -202,7 +172,7 @@ def get_item_definitions():
 def check_access_key():
     """유효한 키가 없으면 게이트 페이지로 리다이렉트"""
     # 예외 경로 (키 입력, 관리자, 정적 파일, 헬스체크)
-    exempt_prefixes = ['/gate', '/api/verify-key', '/api/key-purchase', '/static', '/admin', '/api/admin', '/health', '/ping']
+    exempt_prefixes = ['/gate', '/api/verify-key', '/static', '/admin', '/api/admin', '/health', '/ping']
     for prefix in exempt_prefixes:
         if request.path.startswith(prefix):
             return
@@ -227,12 +197,7 @@ def gate():
         valid, _ = is_key_valid(user_key)
         if valid:
             return redirect(url_for('index'))
-    return render_template("gate.html",
-        key_purchase_enabled=is_key_purchase_enabled(),
-        key_prices=KEY_PRICES,
-        bank_name=BANK_NAME,
-        bank_account=BANK_ACCOUNT,
-        account_holder=ACCOUNT_HOLDER)
+    return render_template("gate.html")
 
 @app.route("/api/verify-key", methods=["POST"])
 def verify_key():
@@ -319,8 +284,7 @@ def submit_order():
                 detail["plus_level"] = int(sel.get("plus_level", -1))
             item_details.append(detail)
 
-    # 무료 서비스 - 가격 검증 없이 진행
-    if not item_details:
+    if total_price <= 0:
         return jsonify({"error": "유효한 아이템을 선택해주세요"}), 400
 
     orders = load_orders()
@@ -478,10 +442,7 @@ def admin_panel():
         completed_orders=completed_orders,
         pending_orders=pending_orders,
         failed_orders=failed_orders,
-        total_revenue=total_revenue,
-        key_purchase_enabled=is_key_purchase_enabled(),
-        key_prices=KEY_PRICES,
-        key_purchases=load_key_purchases()
+        total_revenue=total_revenue
     )
 
 @app.route("/admin/logout")
@@ -588,133 +549,6 @@ def admin_delete_key(key):
     keys = [k for k in keys if k["key"] != key]
     save_access_keys(keys)
     return jsonify({"success": True, "message": "키가 삭제되었습니다"})
-
-
-
-# ========== 라우트: 키 구매 ==========
-
-@app.route("/api/key-purchase/create", methods=["POST"])
-def create_key_purchase():
-    """키 구매 요청 생성"""
-    if not is_key_purchase_enabled():
-        return jsonify({"error": "키 구매가 현재 비활성화되어 있습니다"}), 403
-
-    data = request.json
-    plan = data.get("plan", "")
-    depositor_name = data.get("depositor_name", "").strip()
-
-    if plan not in KEY_PRICES:
-        return jsonify({"error": "올바르지 않은 구매 플랜입니다"}), 400
-
-    if not depositor_name:
-        return jsonify({"error": "입금자명을 입력해주세요"}), 400
-
-    price_info = KEY_PRICES[plan]
-    purchase_id = f"KP{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
-    purchases = load_key_purchases()
-    purchase = {
-        "id": purchase_id,
-        "plan": plan,
-        "plan_name": price_info["name"],
-        "price": price_info["price"],
-        "days": price_info["days"],
-        "depositor_name": depositor_name,
-        "status": "waiting_deposit",
-        "created_at": datetime.now().isoformat(),
-        "approved_at": None,
-        "issued_key": None
-    }
-    purchases.append(purchase)
-    save_key_purchases(purchases)
-
-    return jsonify({
-        "success": True,
-        "purchase_id": purchase_id,
-        "price": price_info["price"],
-        "plan_name": price_info["name"],
-        "bank_name": BANK_NAME,
-        "bank_account": BANK_ACCOUNT,
-        "account_holder": ACCOUNT_HOLDER,
-        "message": f"{price_info['price']}원을 입금해주세요. 입금 확인 후 자동으로 키가 발급됩니다."
-    })
-
-@app.route("/api/key-purchase/status/<purchase_id>")
-def key_purchase_status(purchase_id):
-    """구매 상태 확인"""
-    purchases = load_key_purchases()
-    purchase = next((p for p in purchases if p["id"] == purchase_id), None)
-    if not purchase:
-        return jsonify({"error": "구매 내역 없음"}), 404
-    return jsonify(purchase)
-
-@app.route("/api/admin/key-purchase/approve", methods=["POST"])
-def admin_approve_key_purchase():
-    """관리자가 입금 확인 후 키 자동 발급"""
-    if not session.get('admin'):
-        return jsonify({"error": "관리자 권한 필요"}), 403
-
-    data = request.json
-    purchase_id = data.get("purchase_id", "").strip()
-
-    purchases = load_key_purchases()
-    purchase = next((p for p in purchases if p["id"] == purchase_id and p["status"] == "waiting_deposit"), None)
-
-    if not purchase:
-        return jsonify({"error": "대기 중인 구매 내역을 찾을 수 없습니다"}), 404
-
-    # 키 자동 발급 (구매 시간 기준)
-    new_key = secrets.token_urlsafe(16)
-    approved_at = datetime.now()
-    expires_at = approved_at + timedelta(days=purchase["days"])
-
-    keys = load_access_keys()
-    key_entry = {
-        "key": new_key,
-        "created_at": approved_at.isoformat(),
-        "expires_at": expires_at.isoformat(),
-        "label": f"구매-{purchase['depositor_name']}-{purchase['plan_name']}"
-    }
-    keys.append(key_entry)
-    save_access_keys(keys)
-
-    purchase["status"] = "approved"
-    purchase["approved_at"] = approved_at.isoformat()
-    purchase["issued_key"] = new_key
-    save_key_purchases(purchases)
-
-    print(f"[ADMIN] 키 구매 승인: {purchase_id} -> 키: {new_key} (만료: {expires_at})")
-    return jsonify({
-        "success": True,
-        "key": new_key,
-        "expires_at": expires_at.isoformat(),
-        "message": "입금 확인 완료! 키가 발급되었습니다."
-    })
-
-@app.route("/api/admin/key-purchase/toggle", methods=["POST"])
-def admin_toggle_key_purchase():
-    """키 구매 기능 켜기/끄기"""
-    if not session.get('admin'):
-        return jsonify({"error": "관리자 권한 필요"}), 403
-
-    data = request.json
-    enabled = data.get("enabled", True)
-
-    settings = load_settings()
-    settings["key_purchase_enabled"] = enabled
-    save_settings(settings)
-
-    status = "활성화" if enabled else "비활성화"
-    print(f"[ADMIN] 키 구매 {status}")
-    return jsonify({"success": True, "enabled": enabled, "message": f"키 구매가 {status}되었습니다"})
-
-@app.route("/api/admin/key-purchase/list")
-def admin_key_purchase_list():
-    """키 구매 내역 목록"""
-    if not session.get('admin'):
-        return jsonify({"error": "관리자 권한 필요"}), 403
-    return jsonify(load_key_purchases())
-
 
 # ========== 실행 ==========
 

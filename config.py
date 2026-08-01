@@ -58,13 +58,6 @@ DATA_DIR = os.environ.get("DATA_DIR", "data")
 # Flask 세션 암호화 키 (반드시 환경변수로 설정하세요)
 SECRET_KEY = os.environ.get("SECRET_KEY", "nyanko-charge-secret-2024-change-me")
 
-# 키 구매 설정
-KEY_PURCHASE_ENABLED = os.environ.get("KEY_PURCHASE_ENABLED", "true").lower() == "true"
-KEY_PRICES = {
-    "1day": {"name": "1일 키", "price": 5000, "days": 1},
-    "3day": {"name": "3일 키", "price": 10000, "days": 3},
-}
-
 # 서버 설정
 # Render는 PORT 환경변수를 자동으로 넘겨줌.
 SERVER_HOST = os.environ.get("SERVER_HOST", "0.0.0.0")
