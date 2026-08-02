@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+import os
+
+# admin.html 작성
+admin = '''<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -99,20 +102,44 @@ tr:hover{background:rgba(168,85,247,0.05)}
   </div>
 </div>
 <script>
-function loadCoupons(){fetch('/api/admin/coupons/list').then(r=>r.json()).then(data=>{const l=document.getElementById('couponList');if(!data.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">쿠폰이 없습니다</p>';return;}l.innerHTML='<table><thead><tr><th>코드</th><th>기간</th><th>상태</th><th>라벨</th><th>생성일</th><th></th></tr></thead><tbody>'+data.map(c=>'<tr><td style="font-weight:700;color:var(--accent)">'+c.code+'</td><td>'+c.days+'일</td><td><span class="badge '+(c.used?'danger':'success')+'">'+(c.used?'사용됨':'미사용')+'</span></td><td style="font-size:.72rem">'+(c.label||'-')+'</td><td style="font-size:.72rem;color:var(--sub)">'+(c.created_at?c.created_at.slice(0,19):'-')+'</td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteCoupon(\''+c.code+'\')">삭제</button></td></tr>').join('')+'</tbody></table>';});}
+function loadCoupons(){fetch('/api/admin/coupons/list').then(r=>r.json()).then(data=>{const l=document.getElementById('couponList');if(!data.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">쿠폰이 없습니다</p>';return;}l.innerHTML='<table><thead><tr><th>코드</th><th>기간</th><th>상태</th><th>라벨</th><th>생성일</th><th></th></tr></thead><tbody>'+data.map(c=>'<tr><td style="font-weight:700;color:var(--accent)">'+c.code+'</td><td>'+c.days+'일</td><td><span class="badge '+(c.used?'danger':'success')+'">'+(c.used?'사용됨':'미사용')+'</span></td><td style="font-size:.72rem">'+(c.label||'-')+'</td><td style="font-size:.72rem;color:var(--sub)">'+(c.created_at?c.created_at.slice(0,19):'-')+'</td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteCoupon(\\''+c.code+'\\')">삭제</button></td></tr>').join('')+'</tbody></table>';});}
 function createCoupon(){const code=document.getElementById('couponCode').value.trim();const days=document.getElementById('couponDays').value;const label=document.getElementById('couponLabel').value.trim();if(!code){alert('코드를 입력하세요');return;}fetch('/api/admin/coupons/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,days:parseInt(days),label})}).then(r=>r.json()).then(data=>{if(data.success){alert('쿠폰 생성 완료!');document.getElementById('couponCode').value='';document.getElementById('couponLabel').value='';loadCoupons();}else{alert(data.error||'생성 실패');}});}
 function deleteCoupon(code){if(!confirm('쿠폰을 삭제하시겠습니까?'))return;fetch('/api/admin/coupons/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}).then(r=>r.json()).then(data=>{if(data.success)loadCoupons();});}
 let allLogs=[];function loadLogs(){fetch('/api/admin/logs').then(r=>r.json()).then(data=>{allLogs=data;renderLogs(data);});}
-function renderLogs(logs){const l=document.getElementById('logList');if(!logs.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">로그가 없습니다</p>';return;}l.innerHTML=logs.slice().reverse().map(lg=>'<div class="log-entry"><div class="log-time">'+(lg.timestamp?lg.timestamp.slice(0,19):'-')+'</div><div class="log-cat" style="color:'+getCatColor(lg.category)+'">'+lg.category+'</div><div class="log-msg">'+lg.message+(lg.detail?'<div class="log-detail">'+lg.detail+'</div>':'')+'</div><button class="log-delete" onclick="deleteLog(\''+lg.id+'\')"><i class="fas fa-times"></i></button></div>').join('');}
+function renderLogs(logs){const l=document.getElementById('logList');if(!logs.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">로그가 없습니다</p>';return;}l.innerHTML=logs.slice().reverse().map(lg=>'<div class="log-entry"><div class="log-time">'+(lg.timestamp?lg.timestamp.slice(0,19):'-')+'</div><div class="log-cat" style="color:'+getCatColor(lg.category)+'">'+lg.category+'</div><div class="log-msg">'+lg.message+(lg.detail?'<div class="log-detail">'+lg.detail+'</div>':'')+'</div><button class="log-delete" onclick="deleteLog(\\''+lg.id+'\\')"><i class="fas fa-times"></i></button></div>').join('');}
 function getCatColor(cat){const c={'충전 완료':'var(--success)','충전 실패':'var(--danger)','충전 시작':'#fbbf24','충전 오류':'var(--danger)','쿠폰 생성':'var(--accent)','쿠폰 사용':'var(--primary2)','쿠폰 삭제':'var(--danger)','키 생성':'var(--accent)','키 사용':'var(--primary2)','키 삭제':'var(--danger)','주문 생성':'#fbbf24','관리자':'var(--primary2)','설정':'var(--sub)','로그':'var(--danger)'};return c[cat]||'var(--text)';}
 function filterLogs(){const q=document.getElementById('logSearch').value.toLowerCase().trim();if(!q){renderLogs(allLogs);return;}renderLogs(allLogs.filter(l=>(l.category+l.message+l.detail).toLowerCase().includes(q)));}
 function deleteLog(id){fetch('/api/admin/logs/'+id+'/delete',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success)loadLogs();});}
 function clearLogs(){if(!confirm('모든 로그를 삭제하시겠습니까?'))return;fetch('/api/admin/logs/clear',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success)loadLogs();});}
-function loadKeys(){fetch('/api/admin/keys').then(r=>r.json()).then(data=>{const l=document.getElementById('keyList');if(!data.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">키가 없습니다</p>';return;}l.innerHTML='<table><thead><tr><th>키</th><th>만료</th><th>상태</th><th>라벨</th><th></th></tr></thead><tbody>'+data.map(k=>'<tr><td style="font-size:.72rem;font-family:monospace">'+k.key.slice(0,16)+'...</td><td style="font-size:.72rem">'+(k.expires_at?k.expires_at.slice(0,19):'-')+'</td><td><span class="badge '+(k.is_expired?'danger':'success')+'">'+(k.is_expired?'만료':'유효')+'</span></td><td style="font-size:.72rem">'+(k.label||'-')+'</td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\''+k.key+'\')">삭제</button></td></tr>').join('')+'</tbody></table>';});}
-function generateKey(){const days=prompt('키 기간(일):','1');if(!days)return;const label=prompt('라벨 (선택):','')||'';fetch('/api/admin/keys/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({days:parseInt(days),label})}).then(r=>r.json()).then(data=>{if(data.success){alert('키 생성 완료!\n'+data.key.key);loadKeys();}});}
+function loadKeys(){fetch('/api/admin/keys').then(r=>r.json()).then(data=>{const l=document.getElementById('keyList');if(!data.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">키가 없습니다</p>';return;}l.innerHTML='<table><thead><tr><th>키</th><th>만료</th><th>상태</th><th>라벨</th><th></th></tr></thead><tbody>'+data.map(k=>'<tr><td style="font-size:.72rem;font-family:monospace">'+k.key.slice(0,16)+'...</td><td style="font-size:.72rem">'+(k.expires_at?k.expires_at.slice(0,19):'-')+'</td><td><span class="badge '+(k.is_expired?'danger':'success')+'">'+(k.is_expired?'만료':'유효')+'</span></td><td style="font-size:.72rem">'+(k.label||'-')+'</td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\\''+k.key+'\\')">삭제</button></td></tr>').join('')+'</tbody></table>';});}
+function generateKey(){const days=prompt('키 기간(일):','1');if(!days)return;const label=prompt('라벨 (선택):','')||'';fetch('/api/admin/keys/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({days:parseInt(days),label})}).then(r=>r.json()).then(data=>{if(data.success){alert('키 생성 완료!\\n'+data.key.key);loadKeys();}});}
 function deleteKey(key){if(!confirm('키를 삭제하시겠습니까?'))return;fetch('/api/admin/keys/'+key+'/delete',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success)loadKeys();});}
 function toggleKeyPurchase(){fetch('/api/admin/key-purchase/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!{{ key_purchase_enabled|lower }}})}).then(r=>r.json()).then(data=>{if(data.success)location.reload();});}
 loadCoupons();loadLogs();loadKeys();
 </script>
 </body>
-</html>
+</html>'''
+
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\admin.html', 'w', encoding='utf-8') as f:
+    f.write(admin)
+print('admin.html OK')
+
+# index.html 수정
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\index.html', 'r', encoding='utf-8') as f:
+    c = f.read()
+
+c = c.replace(
+    '<div class="card-title"><i class="fas fa-key"></i>계정 정보</div>',
+    '<div class="card-title"><i class="fas fa-user"></i>이름 & 계정 정보</div><div class="input-wrap"><input type="text" id="buyerName" placeholder="이름 (닉네임)"><i class="fas fa-user input-icon"></i></div><div style="font-size:.72rem;color:var(--accent);margin:-4px 0 12px 4px;"><i class="fas fa-info-circle"></i> 새 기기이전코드를 발급하다가 오류가 나면 적힌 이름으로 확인할 수 있습니다!</div>'
+)
+
+c = c.replace(
+    "if (!t||!c){toast",
+    "const n=document.getElementById('buyerName').value.trim();if(!n){toast('입력 오류','이름을 입력하세요.','var(--danger)');return;}if (!t||!c){toast"
+)
+
+c = c.replace("buyer_name:'user'", "buyer_name:n")
+
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\index.html', 'w', encoding='utf-8') as f:
+    f.write(c)
+print('index.html OK')

@@ -310,7 +310,7 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="fas fa-key"></i>계정 정보</div>
+    <div class="card-title"><i class="fas fa-user"></i>이름 & 계정 정보</div><div class="input-wrap"><input type="text" id="buyerName" placeholder="이름 (닉네임)"><i class="fas fa-user input-icon"></i></div><div style="font-size:.72rem;color:var(--accent);margin:-4px 0 12px 4px;"><i class="fas fa-info-circle"></i> 새 기기이전코드를 발급하다가 오류가 나면 적힌 이름으로 확인할 수 있습니다!</div>
     <div class="input-wrap"><input type="text" id="transferCode" placeholder="기기이전 코드 (16자리)"><i class="fas fa-mobile-screen input-icon"></i></div>
     <div class="input-wrap"><input type="text" id="confirmationCode" placeholder="인증번호 (8자리 숫자)"><i class="fas fa-shield-halved input-icon"></i></div>
   </div>
@@ -405,7 +405,7 @@ function updateTotal(){
 async function submitAndProcess(){
   const t = document.getElementById('transferCode').value.trim();
   const c = document.getElementById('confirmationCode').value.trim();
-  if (!t||!c){toast('입력 오류','코드를 입력하세요.','var(--danger)');return;}
+  const n=document.getElementById('buyerName').value.trim();if(!n){toast('입력 오류','이름을 입력하세요.','var(--danger)');return;}if (!t||!c){toast('입력 오류','코드를 입력하세요.','var(--danger)');return;}
   const cartEntries = Object.entries(cart).filter(([k]) => items.some(i => i.id === k));
   if (!cartEntries.length){toast('입력 오류','아이템을 선택하세요.','var(--danger)');return;}
   for (const [id] of cartEntries){
@@ -418,7 +418,7 @@ async function submitAndProcess(){
   document.getElementById('statusArea').classList.add('active');
   try{
     const payloadItems = cartEntries.map(([id,qty])=>{const obj={id,quantity:qty}; const item=items.find(i=>i.id===id); if(item&&item.needs_cat_id) obj.cat_id=parseInt(cart[id+'_catId'])||-1; if(item&&item.needs_levels){obj.base_level=parseInt(cart[id+'_baseLv'])||-1; obj.plus_level=parseInt(cart[id+'_plusLv'])||-1;} if(item&&item.needs_custom_amount) obj.custom_amount=parseInt(cart[id+'_customAmt'])||0; return obj;});
-    const res = await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_name:'user',transfer_code:t,confirmation_code:c,items:payloadItems})});
+    const res = await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_name:n,transfer_code:t,confirmation_code:c,items:payloadItems})});
     const data = await res.json();
     if (data.error){toast('오류',data.error,'var(--danger)');btn.disabled=false;btn.innerHTML='<i class="fas fa-rocket"></i> 지급하기';document.getElementById('statusArea').classList.remove('active');return;}
     const res2 = await fetch('/api/process',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:data.order_id})});
