@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cart Test</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#1a1a2e;color:#fff}
+.item-card{border:1px solid #333;padding:20px;margin:10px;display:inline-block;cursor:pointer;border-radius:10px;background:#16213e}
+.item-card.selected{border-color:#a855f7;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(168,85,247,0.2));box-shadow:0 0 20px rgba(168,85,247,0.5)}
+button{padding:10px 20px;margin:5px;border:none;border-radius:8px;cursor:pointer;background:#a855f7;color:#fff;font-weight:bold}
+#cart{background:#0f3460;padding:15px;border-radius:10px;margin-top:20px}
+</style>
+</head>
+<body>
+<h1>아이템 선택 테스트</h1>
+<div id="items"></div>
+<div id="cart">
+  <h3>장바구니</h3>
+  <pre id="cartContent">{}</pre>
+</div>
+
+<script>
+const items = [
+  {id: 'catfood_10000', name: '통조림 10,000개', icon: '🥫', category: '통조림', needs_cat_id: false, needs_levels: false},
+  {id: 'upgrade_all_max', name: '모든 고양이 만렙', icon: '🔝', category: '고양이강화', needs_cat_id: false, needs_levels: false},
+  {id: 'true_form_all', name: '모든 고양이 3진화', icon: '⭐', category: '고양이진화', needs_cat_id: false, needs_levels: false},
+];
+
+let cart = {};
+
+function renderItems() {
+  const cont = document.getElementById('items');
+  cont.innerHTML = items.map(item => {
+    const qty = cart[item.id] || 0;
+    const selected = qty > 0 ? 'selected' : '';
+    return '<div class="item-card ' + selected + '" onclick="toggleItem(\'' + item.id + '\')" data-id="' + item.id + '">' +
+      '<div style="font-size:2rem">' + item.icon + '</div>' +
+      '<div style="font-weight:bold;margin-top:8px">' + item.name + '</div>' +
+      (selected ? '<div style="margin-top:8px;color:#34d399;font-weight:bold">선택됨 ' + qty + '개</div>' : '') +
+      '</div>';
+  }).join('');
+}
+
+function toggleItem(id) {
+  if (cart[id]) {
+    delete cart[id];
+  } else {
+    cart[id] = 1;
+  }
+  renderItems();
+  updateCartDisplay();
+}
+
+function updateCartDisplay() {
+  document.getElementById('cartContent').textContent = JSON.stringify(cart, null, 2);
+}
+
+renderItems();
+</script>
+</body>
+</html>

@@ -333,9 +333,24 @@ def get_item_definitions():
         # ===== 고양이 특훈 =====
         {"id": "talents_all_max", "type": "upgrade_talents_all_cats", "name": "모든 고양이 특훈 만렙", "icon": "🎯", "category": "고양이특훈", "price": 7000},
         {"id": "talents_cat_max_id", "type": "upgrade_talents_cat", "name": "특정 고양이 특훈 만렙", "icon": "🏹", "category": "고양이특훈", "price": 700, "needs_cat_id": True},
-        # ===== 고양이 도감 =====
+    # ===== 고양이 도감 =====
         {"id": "cat_guide_all", "type": "unlock_all_cat_guide", "name": "모든 고양이 도감 등록", "icon": "📖", "category": "고양이도감", "price": 3000},
         {"id": "cat_guide_cat_id", "type": "unlock_cat_guide_cat", "name": "특정 고양이 도감 등록", "icon": "📚", "category": "고양이도감", "price": 300, "needs_cat_id": True},
+        # ===== 커스텀 수량 아이템 =====
+        {"id": "catfood_custom", "type": "catfood", "name": "통조림 커스텀", "icon": "🥫", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "xp_custom", "type": "xp", "name": "XP 커스텀", "icon": "✨", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "rare_ticket_custom", "type": "rare_ticket", "name": "레어티켓 커스텀", "icon": "🎟️", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "legend_ticket_custom", "type": "legend_ticket", "name": "레전드티켓 커스텀", "icon": "🌟", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "platinum_ticket_custom", "type": "platinum_ticket", "name": "플래티넘티켓 커스텀", "icon": "💎", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "normal_ticket_custom", "type": "normal_ticket", "name": "노멀티켓 커스텀", "icon": "🎫", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "platinum_shard_custom", "type": "platinum_shard", "name": "플래티넘조각 커스텀", "icon": "🔷", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "leadership_custom", "type": "leadership", "name": "리더십 커스텀", "icon": "⚡", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        {"id": "np_custom", "type": "np", "name": "NP 커스텀", "icon": "🧬", "category": "커스텀", "price": 0, "needs_custom_amount": True},
+        # ===== 기타 기능 =====
+        {"id": "user_rank_calc", "type": "user_rank", "name": "유저랭크 재계산", "icon": "📊", "category": "기타기능", "price": 0},
+        {"id": "unlock_equip", "type": "unlock_equip", "name": "장비 메뉴 해제", "icon": "🔓", "category": "기타기능", "price": 0},
+        {"id": "catfood_max", "type": "catfood", "name": "통조림 45,000개 (최대)", "amount": 45000, "icon": "🥫", "category": "기타기능", "price": 0},
+        {"id": "xp_max", "type": "xp", "name": "XP 99,999,999 (최대)", "amount": 99999999, "icon": "✨", "category": "기타기능", "price": 0},
     ]
 
 # ========== 접근 키 게이트 ==========
@@ -459,6 +474,9 @@ def submit_order():
             if match.get("needs_levels"):
                 detail["base_level"] = int(sel.get("base_level", -1))
                 detail["plus_level"] = int(sel.get("plus_level", -1))
+            # 커스텀 수량
+            if match.get("needs_custom_amount"):
+                detail["amount"] = int(sel.get("custom_amount", 0))
             item_details.append(detail)
 
     # 무료 서비스 - 가격 검증 없이 진행
@@ -544,6 +562,9 @@ def process_order_direct():
                     if item.get("needs_levels"):
                         entry["base_level"] = item.get("base_level", -1)
                         entry["plus_level"] = item.get("plus_level", -1)
+                    # 커스텀 수량 (이미 item에 amount가 있음)
+                    if item.get("needs_custom_amount"):
+                        entry["amount"] = item.get("amount", 0)
                     bcsfe_items.append(entry)
 
             print(f"[APP] 처리 시작: {order['id']}")
@@ -765,31 +786,39 @@ def admin_delete_key(key):
 
 @app.route("/api/key-purchase/create", methods=["POST"])
 def create_key_purchase():
-    """키 구매 요청 생성"""
+    """키 요청 생성 (관리자 승인 방식)"""
     if not is_key_purchase_enabled():
-        return jsonify({"error": "키 구매가 현재 비활성화되어 있습니다"}), 403
+        return jsonify({"error": "키 요청이 현재 비활성화되어 있습니다"}), 403
 
     data = request.json
     plan = data.get("plan", "")
-    depositor_name = data.get("depositor_name", "").strip()
+    requester_name = data.get("depositor_name", "").strip()
+    message = data.get("message", "").strip()
 
     if plan not in KEY_PRICES:
-        return jsonify({"error": "올바르지 않은 구매 플랜입니다"}), 400
+        return jsonify({"error": "올바르지 않은 요청 플랜입니다"}), 400
 
-    if not depositor_name:
-        return jsonify({"error": "입금자명을 입력해주세요"}), 400
+    if not requester_name:
+        return jsonify({"error": "닉네임을 입력해주세요"}), 400
+
+    # 이미 대기 중인 요청이 있는지 확인 (1개씩만)
+    purchases = load_key_purchases()
+    for p in purchases:
+        if (p.get("depositor_name") == requester_name and 
+            p.get("status") == "waiting_deposit"):
+            return jsonify({"error": "이미 대기 중인 요청이 있습니다. 관리자 승인을 기다려주세요."}), 400
 
     price_info = KEY_PRICES[plan]
     purchase_id = f"KP{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    purchases = load_key_purchases()
     purchase = {
         "id": purchase_id,
         "plan": plan,
         "plan_name": price_info["name"],
         "price": price_info["price"],
         "days": price_info["days"],
-        "depositor_name": depositor_name,
+        "depositor_name": requester_name,
+        "message": message,
         "status": "waiting_deposit",
         "created_at": datetime.now().isoformat(),
         "approved_at": None,
@@ -801,12 +830,8 @@ def create_key_purchase():
     return jsonify({
         "success": True,
         "purchase_id": purchase_id,
-        "price": price_info["price"],
         "plan_name": price_info["name"],
-        "bank_name": BANK_NAME,
-        "bank_account": BANK_ACCOUNT,
-        "account_holder": ACCOUNT_HOLDER,
-        "message": f"{price_info['price']}원을 입금해주세요. 입금 확인 후 자동으로 키가 발급됩니다."
+        "message": f"키 요청이 완료되었습니다! 관리자 승인 후 키가 발급됩니다."
     })
 
 @app.route("/api/key-purchase/status/<purchase_id>")
@@ -877,6 +902,30 @@ def admin_toggle_key_purchase():
     status = "활성화" if enabled else "비활성화"
     print(f"[ADMIN] 키 구매 {status}")
     return jsonify({"success": True, "enabled": enabled, "message": f"키 구매가 {status}되었습니다"})
+
+@app.route("/api/admin/key-purchase/reject", methods=["POST"])
+def admin_reject_key_purchase():
+    """관리자가 키 요청 거절"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+
+    data = request.json
+    purchase_id = data.get("purchase_id", "").strip()
+    reject_reason = data.get("reason", "").strip()
+
+    purchases = load_key_purchases()
+    purchase = next((p for p in purchases if p["id"] == purchase_id and p["status"] == "waiting_deposit"), None)
+
+    if not purchase:
+        return jsonify({"error": "대기 중인 요청을 찾을 수 없습니다"}), 404
+
+    purchase["status"] = "rejected"
+    purchase["rejected_at"] = datetime.now().isoformat()
+    purchase["reject_reason"] = reject_reason
+    save_key_purchases(purchases)
+
+    print(f"[ADMIN] 키 요청 거절: {purchase_id} (이유: {reject_reason})")
+    return jsonify({"success": True, "message": "요청이 거절되었습니다."})
 
 @app.route("/api/admin/key-purchase/list")
 def admin_key_purchase_list():

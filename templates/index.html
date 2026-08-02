@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🐱 냥코 자동충전 시스템 v10.0</title>
+<title>🐱 냥코 자동충전 시스템 v11.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -136,12 +136,13 @@ body::after{
   font-size:1.2rem;
 }
 
-.tabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.tabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
 .tab{
   padding:10px 18px;border-radius:12px;
   background:var(--surface2);border:1.5px solid var(--border);
   color:var(--sub);cursor:pointer;font-weight:700;font-size:.78rem;
-  transition:all .25s;white-space:nowrap;letter-spacing:.5px;
+  transition:all .25s;white-space:nowrap;letter-spacing:.5px;flex-shrink:0;
 }
 .tab:hover{color:#fff;border-color:var(--primary2);box-shadow:0 0 16px rgba(168,85,247,0.3)}
 .tab.active{
@@ -248,12 +249,18 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
   color:#fff;box-shadow:0 6px 24px rgba(6,182,212,0.5);
 }
 .btn-success:hover{box-shadow:0 12px 36px rgba(6,182,212,0.7);transform:translateY(-3px);filter:brightness(1.15)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
 
+/* 처리 현황 영역 - 고정 높이로 레이아웃 시프트 방지 */
+.status-area{min-height:0;transition:min-height .3s ease}
+.status-area.active{min-height:80px}
 .status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:.8rem;margin-bottom:10px;font-weight:700;letter-spacing:.5px}
 .status-bar.pending{background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.08));color:var(--accent);border:1.5px solid rgba(251,191,36,0.3);box-shadow:0 0 20px rgba(251,191,36,0.2)}
 .status-bar.success{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(52,211,153,0.08));color:var(--success);border:1.5px solid rgba(16,185,129,0.3);box-shadow:0 0 20px rgba(16,185,129,0.2)}
 .status-bar.error{background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.08));color:var(--danger);border:1.5px solid rgba(239,68,68,0.3);box-shadow:0 0 20px rgba(239,68,68,0.2)}
-.spinner{display:inline-block;width:16px;height:16px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-right-color:var(--primary2);border-radius:50%;animation:spin .8s linear}
+
+/* 부드러운 스피너 */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.12);border-top-color:var(--accent);border-right-color:var(--primary2);border-radius:50%;animation:spin .6s linear infinite;will-change:transform}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .result-box{display:none;padding:20px;border-radius:16px;margin-top:16px}
@@ -276,7 +283,7 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 <body>
 <div class="container">
   <header class="header">
-    <div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v10.0</span></div>
+    <div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v11.0</span></div>
   </header>
 
   <div class="hero">
@@ -287,10 +294,10 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
   <div class="card">
     <div class="card-title"><i class="fas fa-rocket"></i>이용 방법</div>
     <ol style="padding-left:20px;color:var(--sub);font-size:.8rem;line-height:2;letter-spacing:.5px">
-      <li>원하는 아이템/기능을 선택하세요</li>
+      <li>원하는 아이템/기능을 선택하세요 (커스텀 수량 입력 가능)</li>
       <li>기기이전 코드와 인증번호를 입력하세요</li>
       <li>"지급하기" 버튼으로 자동 충전</li>
-      <li>완료 후 새 코드를 갤러리에 저장</li>
+      <li>완료 후 새 코드를 복사하거나 이미지로 저장</li>
     </ol>
   </div>
 
@@ -310,7 +317,7 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 
   <button class="btn btn-success" onclick="startProcess()" id="payButton"><i class="fas fa-rocket"></i> 지급하기</button>
   <div id="processResult"></div>
-  <div id="statusArea"></div>
+  <div id="statusArea" class="status-area"></div>
   <div class="result-box" id="resultBox"><h4 id="resultTitle"></h4><div id="resultContent"></div></div>
 </div>
 
@@ -334,16 +341,17 @@ function renderItems(){
     const selected = qty > 0 ? 'selected' : '';
     let extraInputs = '';
     if (selected){
-      if (item.needs_cat_id) extraInputs += `<div class="cat-inputs"><label>고양이 ID</label><input type="number" value="${cart[item.id+'_catId']||''}" oninput="saveCatId('${item.id}',this.value)"></div>`;
+      if (item.needs_cat_id) extraInputs += `<div class="cat-inputs"><label>고양이 ID</label><input type="number" value="${cart[item.id+'_catId']||''}" oninput="saveCatId('${item.id}',this.value)" onclick="event.stopPropagation()"></div>`;
       if (item.needs_levels){
-        extraInputs += `<div class="cat-inputs"><label>기본 레벨</label><input type="number" value="${cart[item.id+'_baseLv']||''}" oninput="saveLevels('${item.id}','base',this.value)"></div>`;
-        extraInputs += `<div class="cat-inputs"><label>+ 레벨</label><input type="number" value="${cart[item.id+'_plusLv']||''}" oninput="saveLevels('${item.id}','plus',this.value)"></div>`;
+        extraInputs += `<div class="cat-inputs"><label>기본 레벨</label><input type="number" value="${cart[item.id+'_baseLv']||''}" oninput="saveLevels('${item.id}','base',this.value)" onclick="event.stopPropagation()"></div>`;
+        extraInputs += `<div class="cat-inputs"><label>+ 레벨</label><input type="number" value="${cart[item.id+'_plusLv']||''}" oninput="saveLevels('${item.id}','plus',this.value)" onclick="event.stopPropagation()"></div>`;
       }
+      if (item.needs_custom_amount) extraInputs += `<div class="cat-inputs"><label>수량 입력</label><input type="number" value="${cart[item.id+'_customAmt']||''}" placeholder="예: 5000" oninput="saveCustomAmt('${item.id}',this.value)" onclick="event.stopPropagation()"></div>`;
     }
     return `<div class="item-card ${selected}" onclick="toggleItem('${item.id}',event)" data-id="${item.id}">
       <div class="item-icon">${item.icon}</div>
       <div class="item-name">${item.name}</div>
-      ${selected?`<div style="position:absolute;top:6px;right:6px;background:var(--accent);color:#000;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:20px;box-shadow:0 0 10px rgba(6,182,238,0.6)">선택됨 ${qty}개</div>`:''}
+      ${selected?`<div style="position:absolute;top:6px;right:6px;background:var(--accent);color:#000;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:20px;box-shadow:0 0 10px rgba(6,182,238,0.6)">✓ ${qty}</div>`:''}
       ${selected?`<div class="item-qty"><button onclick="event.stopPropagation();changeQty('${item.id}',-1,event)">−</button><span>${qty}</span><button onclick="event.stopPropagation();changeQty('${item.id}',1,event)">+</button></div>`:''}
       ${extraInputs}
     </div>`;
@@ -352,16 +360,17 @@ function renderItems(){
 
 function saveCatId(id,val){cart[id+'_catId']=val; renderCart();}
 function saveLevels(id,type,val){cart[id+'_'+type+'Lv']=val; renderCart();}
+function saveCustomAmt(id,val){cart[id+'_customAmt']=val; renderCart();}
 
 function toggleItem(id,e){
-  if (cart[id]){delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv'];}
+  if (cart[id]){delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv']; delete cart[id+'_customAmt'];}
   else {cart[id]=1;}
   renderItems(); renderCart(); updateTotal();
 }
 
 function changeQty(id,delta,e){
   const n = (cart[id]||0)+delta;
-  if (n<=0){delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv'];}
+  if (n<=0){delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv']; delete cart[id+'_customAmt'];}
   else cart[id]=n;
   renderItems(); renderCart(); updateTotal();
 }
@@ -376,12 +385,13 @@ function renderCart(){
     let extra='';
     if (item.needs_cat_id && cart[id+'_catId']) extra += ` (ID:${cart[id+'_catId']})`;
     if (item.needs_levels) extra += ` (Lv:${cart[id+'_baseLv']||'?'}+${cart[id+'_plusLv']||'?'})`;
+    if (item.needs_custom_amount && cart[id+'_customAmt']) extra += ` (${cart[id+'_customAmt']}개)`;
     return `<div class="cart-item"><div class="cart-item-name"><span>${item.icon}</span> ${item.name}${extra}</div><div class="cart-item-right"><span class="cart-item-qty">x${qty}</span><button class="cart-item-remove" onclick="removeFromCart('${id}',event)">✕</button></div></div>`;
   }).join('');
 }
 
 function removeFromCart(id,e){
-  delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv'];
+  delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv']; delete cart[id+'_customAmt'];
   renderItems(); renderCart(); updateTotal();
 }
 
@@ -401,20 +411,22 @@ async function submitAndProcess(){
   for (const [id] of cartEntries){
     const item = items.find(i => i.id === id);
     if (item && item.needs_cat_id && !cart[id+'_catId']){toast('입력 오류',item.name+'의 고양이 ID를 입력하세요.','var(--danger)');return;}
+    if (item && item.needs_custom_amount && !cart[id+'_customAmt']){toast('입력 오류',item.name+'의 수량을 입력하세요.','var(--danger)');return;}
   }
   const btn = document.getElementById('payButton');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span> 처리 중...';
+  document.getElementById('statusArea').classList.add('active');
   try{
-    const payloadItems = cartEntries.map(([id,qty])=>{const obj={id,quantity:qty}; const item=items.find(i=>i.id===id); if(item&&item.needs_cat_id) obj.cat_id=parseInt(cart[id+'_catId'])||-1; if(item&&item.needs_levels){obj.base_level=parseInt(cart[id+'_baseLv'])||-1; obj.plus_level=parseInt(cart[id+'_plusLv'])||-1;} return obj;});
+    const payloadItems = cartEntries.map(([id,qty])=>{const obj={id,quantity:qty}; const item=items.find(i=>i.id===id); if(item&&item.needs_cat_id) obj.cat_id=parseInt(cart[id+'_catId'])||-1; if(item&&item.needs_levels){obj.base_level=parseInt(cart[id+'_baseLv'])||-1; obj.plus_level=parseInt(cart[id+'_plusLv'])||-1;} if(item&&item.needs_custom_amount) obj.custom_amount=parseInt(cart[id+'_customAmt'])||0; return obj;});
     const res = await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyer_name:'user',transfer_code:t,confirmation_code:c,items:payloadItems})});
     const data = await res.json();
-    if (data.error){toast('오류',data.error,'var(--danger)');btn.disabled=false;btn.innerHTML='<i class="fas fa-rocket"></i> 지급하기';return;}
+    if (data.error){toast('오류',data.error,'var(--danger)');btn.disabled=false;btn.innerHTML='<i class="fas fa-rocket"></i> 지급하기';document.getElementById('statusArea').classList.remove('active');return;}
     const res2 = await fetch('/api/process',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order_id:data.order_id})});
     const data2 = await res2.json();
-    if (data2.error){toast('오류',data2.error,'var(--danger)');btn.disabled=false;btn.innerHTML='<i class="fas fa-rocket"></i> 지급하기';return;}
+    if (data2.error){toast('오류',data2.error,'var(--danger)');btn.disabled=false;btn.innerHTML='<i class="fas fa-rocket"></i> 지급하기';document.getElementById('statusArea').classList.remove('active');return;}
     document.getElementById('processResult').innerHTML='<div class="status-bar pending"><span class="spinner"></span> 처리 중... (30초~1분)</div>';
     startPolling(data2.order_id);
-  }catch(e){toast('오류','서버 연결 실패','var(--danger)');}
+  }catch(e){toast('오류','서버 연결 실패','var(--danger)');document.getElementById('statusArea').classList.remove('active');}
   btn.disabled=false; btn.innerHTML='<i class="fas fa-rocket"></i> 지급하기';
 }
 
@@ -450,7 +462,7 @@ function showResult(order){
     rt.innerHTML='<i class="fas fa-times-circle"></i> 충전 실패';
     rc.innerHTML='<div style="color:var(--sub);font-size:.82rem;">'+(order.result?.error||'오류')+'</div>';
   }
-  rb.scrollIntoView({behavior:'smooth'});
+  rb.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function saveAsImage(){
@@ -482,7 +494,7 @@ function saveAsImage(){
   ctx.fillText(newCc,400,395);
   ctx.fillStyle='#64748b'; ctx.font='12px Exo 2,sans-serif'; ctx.textAlign='center';
   ctx.fillText('생성일: '+new Date().toLocaleString('ko-KR'),400,455);
-  ctx.fillText('BCSFE Ultimate v10.0',400,475);
+  ctx.fillText('BCSFE Ultimate v11.0',400,475);
   canvas.toBlob(blob=>{
     const url=URL.createObjectURL(blob);
     const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -537,7 +549,6 @@ function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x
 
 function toast(t,m,c){const d=document.createElement('div');d.className='toast';d.style.borderLeftColor=c||'var(--accent)';d.innerHTML='<strong>'+t+'</strong>'+m.replace(/\n/g,'<br>')+'<small onclick="this.parentElement.classList.add(\'out\');setTimeout(()=>this.parentElement.remove(),300)">닫기</small>';document.body.appendChild(d);setTimeout(()=>{if(d.parentElement){d.classList.add('out');setTimeout(()=>d.remove(),300);}},8000);}
 
-document.addEventListener('click',e=>{const b=e.target.closest('.btn');if(b){const rect=b.getBoundingClientRect();const ripple=document.createElement('span');ripple.className='ripple';ripple.style.width=ripple.style.height=Math.max(rect.width,rect.height)+'px';ripple.style.left=e.clientX-rect.left-Math.max(rect.width,rect.height)/2+'px';ripple.style.top=e.clientY-rect.top-Math.max(rect.width,rect.height)/2+'px';b.appendChild(ripple);setTimeout(()=>ripple.remove(),600);}});
 renderTabs(); renderItems();
 </script>
 </body>
