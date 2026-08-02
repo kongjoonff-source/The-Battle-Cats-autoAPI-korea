@@ -405,7 +405,7 @@ function updateTotal(){
 async function submitAndProcess(){
   const t = document.getElementById('transferCode').value.trim();
   const c = document.getElementById('confirmationCode').value.trim();
-  const n=document.getElementById('buyerName').value.trim();if(!n){toast('입력 오류','이름을 입력하세요.','var(--danger)');return;}if (!t||!c){toast('입력 오류','코드를 입력하세요.','var(--danger)');return;}
+  const n=document.getElementById('buyerName').value.trim();if(!n){toast('입력 오류','이름을 입력하세요.','var(--danger)');return;}const n=document.getElementById('buyerName').value.trim();if(!n){toast('입력 오류','이름을 입력하세요.','var(--danger)');return;}if (!t||!c){toast('입력 오류','코드를 입력하세요.','var(--danger)');return;}
   const cartEntries = Object.entries(cart).filter(([k]) => items.some(i => i.id === k));
   if (!cartEntries.length){toast('입력 오류','아이템을 선택하세요.','var(--danger)');return;}
   for (const [id] of cartEntries){
