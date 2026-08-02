@@ -437,14 +437,14 @@ function showResult(order){
   const rb=document.getElementById('resultBox'); const rt=document.getElementById('resultTitle'); const rc=document.getElementById('resultContent');
   rb.className='result-box show '+(order.status==='completed'?'success':'error');
   if (order.status==='completed'){
-    const r=order.result;
+    const r=order.result||{};
     rt.innerHTML='<i class="fas fa-check-circle"></i> 충전 완료!';
-    confetti();
+    try{confetti();}catch(e){}
     let d='';
     if (r.details && r.details.length){d='<div style="margin-top:10px;font-size:.75rem;color:var(--sub);">'; r.details.forEach(x=>d+='<div>'+(x.success?'✅':'❌')+' '+x.message+'</div>'); d+='</div>';}
     rc.innerHTML='<div style="font-weight:800;color:var(--success);margin-bottom:8px;font-size:1rem;">🚀 새 코드 발급 완료!</div>'+
-      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 전송코드</div><div style="font-weight:800;color:var(--success);font-size:1.1rem;text-shadow:0 0 10px rgba(16,185,129,0.5);">'+(r.new_transfer_code||'N/A')+'</div></div>'+
-      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;"><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">새 인증번호</div><div style="font-weight:800;color:var(--primary2);font-size:1.1rem;text-shadow:0 0 10px rgba(168,85,247,0.5);">'+(r.new_confirmation_code||'N/A')+'</div></div>'+
+      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;"><button onclick="copyCode(\'newTc\')" style="position:absolute;top:8px;right:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:var(--primary2);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-copy"></i></button><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">📋 새 전송코드</div><div id="newTc" style="font-weight:800;color:var(--success);font-size:1.1rem;text-shadow:0 0 10px rgba(16,185,129,0.5);word-break:break-all;">'+(r.new_transfer_code||'N/A')+'</div></div>'+
+      '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;"><button onclick="copyCode(\'newCc\')" style="position:absolute;top:8px;right:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:var(--primary2);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-copy"></i></button><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">🔒 새 인증번호</div><div id="newCc" style="font-weight:800;color:var(--primary2);font-size:1.1rem;text-shadow:0 0 10px rgba(168,85,247,0.5);word-break:break-all;">'+(r.new_confirmation_code||'N/A')+'</div></div>'+
       d+'<button class="btn btn-success" onclick="saveAsImage()" style="margin-top:14px;"><i class="fas fa-image"></i> 이미지로 저장</button>';
   } else {
     rt.innerHTML='<i class="fas fa-times-circle"></i> 충전 실패';
@@ -456,7 +456,7 @@ function showResult(order){
 function saveAsImage(){
   const newTc = document.getElementById('newTc')?document.getElementById('newTc').textContent:'N/A';
   const newCc = document.getElementById('newCc')?document.getElementById('newCc').textContent:'N/A';
-  toast('이미지 저장','우주 스타일 이미지를 생성 중입니다...','var(--accent)');
+  toast('이미지 저장','이미지를 생성 중입니다...','var(--accent)');
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width=800; canvas.height=500;
@@ -465,27 +465,72 @@ function saveAsImage(){
   ctx.fillStyle=grad; ctx.fillRect(0,0,800,500);
   ctx.strokeStyle='rgba(168,85,247,0.6)'; ctx.lineWidth=3; ctx.strokeRect(10,10,780,480);
   ctx.fillStyle='#a855f7'; ctx.font='bold 28px Exo 2,sans-serif'; ctx.textAlign='center';
-  ctx.fillText('NYANKO AUTO CHARGE v10.0',400,55);
+  ctx.fillText('🐱 냥코 자동충전',400,55);
   ctx.fillStyle='#06b6d4'; ctx.font='16px Exo 2,sans-serif';
-  ctx.fillText('BCSFE ULTIMATE',400,95);
+  ctx.fillText('새 기기이전 코드 & 인증번호',400,95);
   ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.strokeStyle='rgba(168,85,247,0.4)'; ctx.lineWidth=2;
   roundRect(ctx,40,120,720,140,16); ctx.fill(); ctx.stroke();
   ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Exo 2,sans-serif'; ctx.textAlign='left';
-  ctx.fillText('NEW TRANSFER CODE',60,155);
+  ctx.fillText('📋 새 전송코드',60,155);
   ctx.fillStyle='#34d399'; ctx.font='bold 24px monospace'; ctx.textAlign='center';
   ctx.fillText(newTc,400,225);
   ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.strokeStyle='rgba(168,85,247,0.4)';
   roundRect(ctx,40,290,720,140,16); ctx.fill(); ctx.stroke();
   ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Exo 2,sans-serif'; ctx.textAlign='left';
-  ctx.fillText('NEW CONFIRMATION CODE',60,325);
+  ctx.fillText('🔒 새 인증번호',60,325);
   ctx.fillStyle='#a855f7'; ctx.font='bold 24px monospace'; ctx.textAlign='center';
   ctx.fillText(newCc,400,395);
+  ctx.fillStyle='#64748b'; ctx.font='12px Exo 2,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('생성일: '+new Date().toLocaleString('ko-KR'),400,455);
+  ctx.fillText('BCSFE Ultimate v10.0',400,475);
   canvas.toBlob(blob=>{
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.download='nyanko-codes-'+Date.now()+'.png'; a.href=url; a.click();
-    toast('저장 완료','우주 스타일 이미지가 저장되었습니다.','var(--success)');
+    const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if(isMobile){
+      const w=window.open('','_blank');
+      if(w){
+        w.document.write('<html><head><title>이미지 저장</title><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>body{margin:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif}img{max-width:95%;border-radius:12px;box-shadow:0 4px 30px rgba(0,0,0,0.5)}.info{color:#fff;text-align:center;margin:15px;font-size:14px;line-height:1.6}.info b{color:#a855f7}</style></head><body><img src="'+url+'" /><div class="info"><b>📌 갤러리에 저장하는 방법</b><br>이미지를 길게 누른 후 "이미지 저장" 또는 "사진 저장"을 선택하세요</div></body></html>');
+        w.document.close();
+        toast('이미지 열림','이미지를 길게 눌러 갤러리에 저장하세요.','var(--success)');
+      } else { downloadImage(url); }
+    } else { downloadImage(url); }
   },'image/png');
+  function downloadImage(url){
+    const a=document.createElement('a');
+    a.download='nyanko-codes-'+Date.now()+'.png'; a.href=url;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    toast('저장 완료','이미지가 다운로드되었습니다.','var(--success)');
+  }
+}
+
+function copyCode(id){
+  const el=document.getElementById(id);
+  if(!el){toast('복사 실패','코드를 찾을 수 없습니다.','var(--danger)');return;}
+  const text=el.textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('복사 완료','코드가 클립보드에 복사되었습니다.','var(--success)')).catch(()=>fallbackCopy(text));
+  } else { fallbackCopy(text); }
+  function fallbackCopy(t){
+    const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');toast('복사 완료','코드가 클립보드에 복사되었습니다.','var(--success)');}catch(e){toast('복사 실패','수동으로 복사해주세요.','var(--danger)');}
+    document.body.removeChild(ta);
+  }
+}
+
+function confetti(){
+  const colors=['#a855f7','#06b6d4','#ec4899','#fbbf24','#10b981','#f59e0b'];
+  for(let i=0;i<80;i++){
+    const c=document.createElement('div');c.className='confetti';
+    c.style.left=Math.random()*100+'vw';c.style.top='-20px';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.borderRadius=Math.random()>0.5?'50%':'2px';
+    c.style.width=(6+Math.random()*8)+'px';c.style.height=(6+Math.random()*12)+'px';
+    document.body.appendChild(c);
+    const dur=2000+Math.random()*2000;
+    c.animate([{transform:'translateY(0) rotate(0deg)',opacity:1},{transform:'translateY('+(window.innerHeight+40)+'px) rotate('+(720*Math.random())+'deg)',opacity:0}],{duration:dur,easing:'cubic-bezier(.3,.7,.5,1)'});
+    setTimeout(()=>c.remove(),dur);
+  }
 }
 
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
