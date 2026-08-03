@@ -284,6 +284,7 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 <div class="container">
   <header class="header">
     <div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v11.0</span></div>
+    <div id="myKeyBox" style="display:none;font-size:.72rem;color:var(--accent);background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);padding:6px 12px;border-radius:10px;cursor:pointer;" onclick="copyMyKey()"><i class="fas fa-key"></i> <span id="myKeyText"></span> <i class="fas fa-copy"></i></div>
   </header>
 
   <div class="hero">
@@ -548,6 +549,21 @@ function confetti(){
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
 
 function toast(t,m,c){const d=document.createElement('div');d.className='toast';d.style.borderLeftColor=c||'var(--accent)';d.innerHTML='<strong>'+t+'</strong>'+m.replace(/\n/g,'<br>')+'<small onclick="this.parentElement.classList.add(\'out\');setTimeout(()=>this.parentElement.remove(),300)">닫기</small>';document.body.appendChild(d);setTimeout(()=>{if(d.parentElement){d.classList.add('out');setTimeout(()=>d.remove(),300);}},8000);}
+
+// 내 키 표시
+function showMyKey(){
+  fetch('/api/my-key').then(r=>r.json()).then(data=>{
+    if(data.key){
+      document.getElementById('myKeyBox').style.display='block';
+      document.getElementById('myKeyText').textContent=data.key;
+    }
+  }).catch(()=>{});
+}
+function copyMyKey(){
+  const k=document.getElementById('myKeyText').textContent;
+  navigator.clipboard.writeText(k).then(()=>toast('복사 완료','키가 복사되었습니다.','var(--success)')).catch(()=>{});
+}
+showMyKey();
 
 renderTabs(); renderItems();
 </script>

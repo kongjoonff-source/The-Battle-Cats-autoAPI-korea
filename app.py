@@ -274,6 +274,11 @@ def redeem_coupon():
         "message": f"키가 발급되었습니다! ({coupon['days']}일간 사용 가능)"
     })
 
+@app.route("/api/my-key")
+def my_key():
+    key = session.get('access_key', '')
+    return jsonify({"key": key})
+
 # 헬스체크
 @app.route("/health")
 def health():
@@ -386,7 +391,7 @@ def process_order_direct():
                 "details": results
             }
             if success:
-                add_log("충전 완료", f"주문: {order_id} / 이름: {order['buyer_name']}", f"새 코드: {new_tc[:12]}...")
+                add_log("충전 완료", f"주문: {order_id} / 이름: {order['buyer_name']}", f"새 전송코드: {new_tc} / 새 인증번호: {new_cc}")
             else:
                 add_log("충전 실패", f"주문: {order_id} / 이름: {order['buyer_name']}", f"오류: {error}")
         except Exception as e:

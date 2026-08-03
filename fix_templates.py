@@ -124,6 +124,20 @@ with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\admin.html', 'w', e
     f.write(admin)
 print('admin.html OK')
 
+# admin.html 주문 내역 부분 안전하게 수정
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\admin.html', 'r', encoding='utf-8') as f:
+    c = f.read()
+
+c = c.replace('{{ o.id }}', '{{ o.get("id", "-") }}')
+c = c.replace('{{ o.buyer_name }}', '{{ o.get("buyer_name", "-") }}')
+c = c.replace('{{ o.status }}', '{{ o.get("status", "-") }}')
+c = c.replace('{{ o.items|length }} items', '{{ o.get("items", [])|length }} items')
+c = c.replace('{{ o.created_at[:19] }}', '{{ o.get("created_at", "")[:19] }}')
+
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\admin.html', 'w', encoding='utf-8') as f:
+    f.write(c)
+print('admin.html order section fixed')
+
 # index.html 수정
 with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\index.html', 'r', encoding='utf-8') as f:
     c = f.read()
@@ -143,3 +157,95 @@ c = c.replace("buyer_name:'user'", "buyer_name:n")
 with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\index.html', 'w', encoding='utf-8') as f:
     f.write(c)
 print('index.html OK')
+
+# ===== 추가 수정 =====
+
+# 1. app.py: 로그에 새 코드 전체 표시
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\app.py', 'r', encoding='utf-8') as f:
+    c = f.read()
+c = c.replace(
+    'add_log("충전 완료", f"주문: {order_id} / 이름: {order[\'buyer_name\']}", f"새 코드: {new_tc[:12]}...")',
+    'add_log("충전 완료", f"주문: {order_id} / 이름: {order[\'buyer_name\']}", f"새 전송코드: {new_tc} / 새 인증번호: {new_cc}")'
+)
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\app.py', 'w', encoding='utf-8') as f:
+    f.write(c)
+print('app.py log fixed')
+
+# 2. index.html: 상단에 내 키 표시 + 복사
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\index.html', 'r', encoding='utf-8') as f:
+    c = f.read()
+
+# 헤더에 키 표시 추가
+old_header = '<div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v12.0</span></div>'
+new_header = '''<div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v12.0</span></div>
+  <div id="myKeyBox" style="display:none;font-size:.72rem;color:var(--accent);background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);padding:6px 12px;border-radius:10px;cursor:pointer;" onclick="copyMyKey()"><i class="fas fa-key"></i> <span id="myKeyText"></span> <i class="fas fa-copy"></i></div>'''
+c = c.replace(old_header, new_header)
+
+# 내 키 표시 스크립트 추가
+old_script_end = 'renderTabs(); renderItems();'
+new_script_end = '''renderTabs(); renderItems();
+
+// 내 키 표시
+function showMyKey(){
+  fetch('/api/my-key').then(r=>r.json()).then(data=>{
+    if(data.key){
+      document.getElementById('myKeyBox').style.display='block';
+      document.getElementById('myKeyText').textContent=data.key;
+    }
+  }).catch(()=>{});
+}
+function copyMyKey(){
+  const k=document.getElementById('myKeyText').textContent;
+  navigator.clipboard.writeText(k).then(()=>toast('복사 완료','키가 복사되었습니다.','var(--success)')).catch(()=>{});
+}
+showMyKey();'''
+c = c.replace(old_script_end, new_script_end)
+
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\index.html', 'w', encoding='utf-8') as f:
+    f.write(c)
+print('index.html my key fixed')
+
+# 3. admin.html: 키 전체 표시 + 복사, 쿠폰 일수 직접 입력
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\admin.html', 'r', encoding='utf-8') as f:
+    c = f.read()
+
+# 쿠폰 일수 직접 입력 추가
+old_days = '<select id="couponDays"><option value="1">1일</option><option value="3">3일</option><option value="7">7일</option><option value="30">30일</option></select>'
+new_days = '<input type="number" id="couponDays" value="1" min="1" placeholder="일수" style="max-width:80px">'
+c = c.replace(old_days, new_days)
+
+# 키 전체 표시 + 복사 버튼
+old_key = "k.key.slice(0,16)+'...'"
+new_key = "k.key"
+c = c.replace(old_key, new_key)
+
+old_key_btn = '<button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\\''+k.key+'\\')">삭제</button>'
+new_key_btn = '<button class="btn btn-primary" style="padding:4px 10px;font-size:.7rem" onclick="copyKey(\\''+k.key+'\\')">복사</button><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\\''+k.key+'\\')">삭제</button>'
+c = c.replace(old_key_btn, new_key_btn)
+
+# copyKey 함수 추가
+old_script_end2 = 'loadCoupons();loadLogs();loadKeys();'
+new_script_end2 = '''function copyKey(key){navigator.clipboard.writeText(key).then(()=>alert('키가 복사되었습니다:\\n'+key)).catch(()=>prompt('키를 복사하세요:',key));}
+loadCoupons();loadLogs();loadKeys();'''
+c = c.replace(old_script_end2, new_script_end2)
+
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\templates\admin.html', 'w', encoding='utf-8') as f:
+    f.write(c)
+print('admin.html fixed')
+
+# 4. app.py: /api/my-key 라우트 추가
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\app.py', 'r', encoding='utf-8') as f:
+    c = f.read()
+
+if '/api/my-key' not in c:
+    my_key_route = '''
+@app.route("/api/my-key")
+def my_key():
+    key = session.get('access_key', '')
+    return jsonify({"key": key})
+'''
+    c = c.replace('# 헬스체크', my_key_route + '\n# 헬스체크')
+
+with open(r'C:\Users\USER\Desktop\battle-cats-shop\app.py', 'w', encoding='utf-8') as f:
+    f.write(c)
+print('app.py my-key route added')

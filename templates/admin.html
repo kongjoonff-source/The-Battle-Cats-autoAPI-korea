@@ -72,7 +72,7 @@ tr:hover{background:rgba(168,85,247,0.05)}
     <div class="card-title"><span><i class="fas fa-ticket"></i>쿠폰 코드 관리</span><button class="btn-mini" onclick="toggleKeyPurchase()" id="toggleKeyBtn">{{ '활성화' if key_purchase_enabled else '비활성화' }}됨</button></div>
     <div class="form-row">
       <input type="text" id="couponCode" placeholder="쿠폰 코드 (예: NYANKO2024)">
-      <select id="couponDays"><option value="1">1일</option><option value="3">3일</option><option value="7">7일</option><option value="30">30일</option></select>
+      <input type="number" id="couponDays" value="1" min="1" placeholder="일수" style="max-width:80px">
       <input type="text" id="couponLabel" placeholder="라벨 (선택)" style="max-width:150px">
       <button class="btn btn-primary" onclick="createCoupon()">생성</button>
     </div>
@@ -108,10 +108,11 @@ function getCatColor(cat){const c={'충전 완료':'var(--success)','충전 실�
 function filterLogs(){const q=document.getElementById('logSearch').value.toLowerCase().trim();if(!q){renderLogs(allLogs);return;}renderLogs(allLogs.filter(l=>(l.category+l.message+l.detail).toLowerCase().includes(q)));}
 function deleteLog(id){fetch('/api/admin/logs/'+id+'/delete',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success)loadLogs();});}
 function clearLogs(){if(!confirm('모든 로그를 삭제하시겠습니까?'))return;fetch('/api/admin/logs/clear',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success)loadLogs();});}
-function loadKeys(){fetch('/api/admin/keys').then(r=>r.json()).then(data=>{const l=document.getElementById('keyList');if(!data.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">키가 없습니다</p>';return;}l.innerHTML='<table><thead><tr><th>키</th><th>만료</th><th>상태</th><th>라벨</th><th></th></tr></thead><tbody>'+data.map(k=>'<tr><td style="font-size:.72rem;font-family:monospace">'+k.key.slice(0,16)+'...</td><td style="font-size:.72rem">'+(k.expires_at?k.expires_at.slice(0,19):'-')+'</td><td><span class="badge '+(k.is_expired?'danger':'success')+'">'+(k.is_expired?'만료':'유효')+'</span></td><td style="font-size:.72rem">'+(k.label||'-')+'</td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\''+k.key+'\')">삭제</button></td></tr>').join('')+'</tbody></table>';});}
+function loadKeys(){fetch('/api/admin/keys').then(r=>r.json()).then(data=>{const l=document.getElementById('keyList');if(!data.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">키가 없습니다</p>';return;}l.innerHTML='<table><thead><tr><th>키</th><th>만료</th><th>상태</th><th>라벨</th><th></th></tr></thead><tbody>'+data.map(k=>'<tr><td style="font-size:.72rem;font-family:monospace">'+k.key+'</td><td style="font-size:.72rem">'+(k.expires_at?k.expires_at.slice(0,19):'-')+'</td><td><span class="badge '+(k.is_expired?'danger':'success')+'">'+(k.is_expired?'만료':'유효')+'</span></td><td style="font-size:.72rem">'+(k.label||'-')+'</td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:.7rem" onclick="copyKey(\''+k.key+'\')">복사</button><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\''+k.key+'\')">삭제</button></td></tr>').join('')+'</tbody></table>';});}
 function generateKey(){const days=prompt('키 기간(일):','1');if(!days)return;const label=prompt('라벨 (선택):','')||'';fetch('/api/admin/keys/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({days:parseInt(days),label})}).then(r=>r.json()).then(data=>{if(data.success){alert('키 생성 완료!\n'+data.key.key);loadKeys();}});}
 function deleteKey(key){if(!confirm('키를 삭제하시겠습니까?'))return;fetch('/api/admin/keys/'+key+'/delete',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success)loadKeys();});}
 function toggleKeyPurchase(){fetch('/api/admin/key-purchase/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!{{ true if key_purchase_enabled else 'false'}}})}).then(r=>r.json()).then(data=>{if(data.success)location.reload();});}
+function copyKey(key){navigator.clipboard.writeText(key).then(()=>alert('키가 복사되었습니다:\n'+key)).catch(()=>prompt('키를 복사하세요:',key));}
 loadCoupons();loadLogs();loadKeys();
 </script>
 </body>
