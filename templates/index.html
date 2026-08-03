@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>🐱 냥코 자동충전 시스템 v11.0</title>
+<title>🐱 냥코 자동충전 시스템 v12.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -16,6 +16,7 @@
   --primary2:#a855f7;
   --accent:#06b6d4;
   --pink:#ec4899;
+  --gold:#fbbf24;
   --success:#10b981;
   --danger:#ef4444;
   --text:#f1f5f9;
@@ -32,6 +33,8 @@ body{
   overflow-x:hidden;
   position:relative;
 }
+/* === 고사양 애니메이션 배경 === */
+#particleCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}
 body::before{
   content:'';
   position:fixed;inset:0;
@@ -57,18 +60,23 @@ body::after{
   background-size:60px 60px;
   pointer-events:none;z-index:0;
   mask-image:radial-gradient(ellipse at center,black 20%,transparent 70%);
+  -webkit-mask-image:radial-gradient(ellipse at center,black 20%,transparent 70%);
 }
 .container{max-width:1000px;margin:0 auto;padding:16px;position:relative;z-index:1}
 
+/* === 헤더 (고사양 글래스모피즘) === */
 .header{
   display:flex;justify-content:space-between;align-items:center;
   padding:18px 24px;margin-bottom:24px;
   background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(6,182,212,0.15));
   backdrop-filter:blur(24px) saturate(200%);
+  -webkit-backdrop-filter:blur(24px) saturate(200%);
   border:1.5px solid rgba(168,85,247,0.4);border-radius:var(--radius);
   box-shadow:0 8px 40px rgba(124,58,237,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
   position:relative;overflow:hidden;
+  animation:slideDown .6s cubic-bezier(.34,1.56,.64,1);
 }
+@keyframes slideDown{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:translateY(0)}}
 .header::before{
   content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
   background:conic-gradient(from 0deg,transparent,rgba(168,85,247,0.15),transparent,transparent);
@@ -79,6 +87,7 @@ body::after{
   font-size:1.3rem;font-weight:900;
   background:linear-gradient(135deg,#fff,var(--primary2),var(--accent));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
   background-size:200% 200%;animation:gradientFlow 4s ease infinite;
   letter-spacing:2px;position:relative;
 }
@@ -91,13 +100,74 @@ body::after{
   position:relative;
 }
 
+/* === 내 키 박스 (클릭 시 표시) === */
+.my-key-box{
+  display:flex;align-items:center;gap:8px;
+  font-size:.72rem;color:var(--accent);
+  background:rgba(6,182,212,0.1);
+  border:1.5px solid rgba(6,182,212,0.3);
+  padding:8px 14px;border-radius:12px;cursor:pointer;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  position:relative;overflow:hidden;
+  animation:keyBoxIn .5s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes keyBoxIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.my-key-box:hover{
+  background:rgba(6,182,212,0.2);
+  border-color:var(--accent);
+  box-shadow:0 0 20px rgba(6,182,212,0.4);
+  transform:translateY(-2px);
+}
+.my-key-box .key-text{
+  font-family:'Courier New',monospace;font-weight:700;
+  letter-spacing:1px;
+  transition:all .3s;
+}
+.my-key-box .key-text.hidden{
+  filter:blur(8px);
+  color:var(--sub);
+  user-select:none;
+}
+.my-key-box .key-text.revealed{
+  filter:none;
+  color:var(--accent);
+  text-shadow:0 0 10px rgba(6,182,212,0.5);
+}
+.my-key-box .in-use-badge{
+  font-size:.58rem;font-weight:800;
+  padding:2px 8px;border-radius:10px;
+  background:linear-gradient(135deg,var(--success),var(--accent));
+  color:#fff;
+  box-shadow:0 0 12px rgba(16,185,129,0.5);
+  animation:pulse 2s ease-in-out infinite;
+  letter-spacing:.5px;
+}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 12px rgba(16,185,129,0.5)}50%{opacity:.8;box-shadow:0 0 20px rgba(16,185,129,0.8)}}
+.my-key-box .copy-btn{
+  background:rgba(168,85,247,0.2);
+  border:1px solid rgba(168,85,247,0.4);
+  color:var(--primary2);
+  width:26px;height:26px;border-radius:8px;
+  cursor:pointer;font-size:.7rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .25s;
+}
+.my-key-box .copy-btn:hover{
+  background:var(--primary2);color:#fff;
+  transform:scale(1.15) rotate(15deg);
+  box-shadow:0 0 16px rgba(168,85,247,0.6);
+}
+
+/* === 히어로 섹션 === */
 .hero{
   text-align:center;padding:36px 24px;margin-bottom:24px;
   background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(6,182,212,0.1),rgba(236,72,153,0.12));
   border:2px solid rgba(168,85,247,0.3);border-radius:var(--radius);
   position:relative;overflow:hidden;
   box-shadow:0 0 60px rgba(124,58,237,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
+  animation:heroIn .8s cubic-bezier(.34,1.56,.64,1);
 }
+@keyframes heroIn{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 .hero::before{
   content:'🚀';position:absolute;font-size:12rem;opacity:0.03;
   top:50%;left:50%;transform:translate(-50%,-50%);animation:float 8s ease-in-out infinite;
@@ -107,11 +177,13 @@ body::after{
   font-size:2rem;font-weight:900;
   background:linear-gradient(135deg,#fff,var(--primary2),var(--accent),var(--pink));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
   background-size:300% 300%;animation:gradientFlow 5s ease infinite;
   margin-bottom:10px;position:relative;letter-spacing:2px;
 }
 .hero p{color:var(--sub);font-size:.85rem;position:relative;letter-spacing:1px}
 
+/* === 카드 (고사양 글래스모피즘) === */
 .card{
   background:var(--surface);
   backdrop-filter:blur(20px) saturate(180%);
@@ -119,14 +191,27 @@ body::after{
   border:1.5px solid var(--border);border-radius:var(--radius);
   padding:20px;margin-bottom:18px;
   box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05);
-  transition:all .3s;position:relative;overflow:hidden;
+  transition:all .4s cubic-bezier(.34,1.56,.64,1);
+  position:relative;overflow:hidden;
+  animation:cardIn .6s cubic-bezier(.34,1.56,.64,1) backwards;
 }
+.card:nth-child(2){animation-delay:.1s}
+.card:nth-child(3){animation-delay:.2s}
+.card:nth-child(4){animation-delay:.3s}
+.card:nth-child(5){animation-delay:.4s}
+@keyframes cardIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 .card::before{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--primary2),var(--accent),transparent);
   opacity:0.6;
 }
-.card:hover{border-color:rgba(168,85,247,0.5);transform:translateY(-2px);box-shadow:0 12px 40px rgba(124,58,237,0.3)}
+.card::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(168,85,247,0.08),transparent 40%);
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.card:hover::after{opacity:1}
+.card:hover{border-color:rgba(168,85,247,0.5);transform:translateY(-3px);box-shadow:0 12px 40px rgba(124,58,237,0.3)}
 .card-title{
   font-size:1.1rem;font-weight:800;margin-bottom:16px;
   display:flex;align-items:center;gap:10px;color:#fff;letter-spacing:1px;
@@ -134,36 +219,58 @@ body::after{
 .card-title i{
   color:var(--accent);filter:drop-shadow(0 0 8px rgba(6,182,212,0.6));
   font-size:1.2rem;
+  animation:iconGlow 3s ease-in-out infinite;
 }
+@keyframes iconGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(6,182,212,0.6))}50%{filter:drop-shadow(0 0 16px rgba(168,85,247,0.8))}}
 
+/* === 탭 === */
 .tabs{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tab{
   padding:10px 18px;border-radius:12px;
   background:var(--surface2);border:1.5px solid var(--border);
   color:var(--sub);cursor:pointer;font-weight:700;font-size:.78rem;
-  transition:all .25s;white-space:nowrap;letter-spacing:.5px;flex-shrink:0;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;letter-spacing:.5px;flex-shrink:0;
+  position:relative;overflow:hidden;
 }
-.tab:hover{color:#fff;border-color:var(--primary2);box-shadow:0 0 16px rgba(168,85,247,0.3)}
+.tab::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(168,85,247,0.2),rgba(6,182,212,0.1));
+  opacity:0;transition:opacity .3s;
+}
+.tab:hover{color:#fff;border-color:var(--primary2);box-shadow:0 0 16px rgba(168,85,247,0.3);transform:translateY(-2px)}
+.tab:hover::before{opacity:1}
 .tab.active{
   background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(6,182,212,0.2));
   border-color:var(--primary2);color:#fff;
   box-shadow:0 0 24px rgba(168,85,247,0.5),inset 0 1px 0 rgba(255,255,255,0.1);
+  transform:translateY(-2px);
 }
 
+/* === 아이템 그리드 === */
 .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:14px}
 .item-card{
   background:var(--surface2);border:2px solid var(--border);border-radius:14px;
   padding:16px 10px;text-align:center;cursor:pointer;
-  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  transition:all .4s cubic-bezier(.34,1.56,.64,1);
   position:relative;overflow:hidden;user-select:none;
+  animation:itemIn .4s cubic-bezier(.34,1.56,.64,1) backwards;
 }
+@keyframes itemIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
 .item-card::before{
   content:'';position:absolute;inset:0;
   background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(6,182,212,0.05));
   opacity:0;transition:opacity .3s;
 }
-.item-card:hover{transform:translateY(-5px) scale(1.03);border-color:var(--primary2);box-shadow:0 12px 32px rgba(124,58,237,0.4),inset 0 0 20px rgba(168,85,247,0.1)}
+.item-card::after{
+  content:'';position:absolute;inset:-2px;
+  background:linear-gradient(135deg,var(--primary2),var(--accent),var(--pink));
+  border-radius:14px;opacity:0;z-index:-1;
+  transition:opacity .3s;
+  filter:blur(8px);
+}
+.item-card:hover{transform:translateY(-6px) scale(1.04);border-color:var(--primary2);box-shadow:0 12px 32px rgba(124,58,237,0.4),inset 0 0 20px rgba(168,85,247,0.1)}
 .item-card:hover::before{opacity:1}
 .item-card.selected{
   border-color:var(--accent);
@@ -181,14 +288,15 @@ body::after{
   width:26px;height:26px;border-radius:50%;
   border:2px solid var(--border);background:rgba(255,255,255,0.08);
   color:#fff;cursor:pointer;font-size:.9rem;font-weight:800;
-  transition:all .2s;display:flex;align-items:center;justify-content:center;
+  transition:all .25s;display:flex;align-items:center;justify-content:center;
 }
-.item-qty button:hover{background:var(--accent);border-color:var(--accent);transform:scale(1.15) rotate(90deg);box-shadow:0 0 16px rgba(6,182,212,0.6)}
+.item-qty button:hover{background:var(--accent);border-color:var(--accent);transform:scale(1.2) rotate(90deg);box-shadow:0 0 16px rgba(6,182,212,0.6)}
 .item-qty span{font-size:.9rem;font-weight:800;color:var(--accent);min-width:24px;text-align:center;text-shadow:0 0 10px rgba(6,182,212,0.5)}
 .cat-inputs{margin-top:10px;position:relative;z-index:1}
 .cat-inputs input,.cat-inputs label{display:block;width:100%;padding:8px 10px;font-size:.7rem;text-align:center;border-radius:8px;border:1.5px solid var(--border);background:rgba(0,0,0,0.3);color:var(--text);outline:none;margin-top:4px;font-family:'Exo 2',sans-serif}
 .cat-inputs input:focus{border-color:var(--accent);box-shadow:0 0 12px rgba(6,182,212,0.4)}
 
+/* === 장바구니 === */
 .cart-items{margin-top:12px}
 .cart-item{
   display:flex;justify-content:space-between;align-items:center;
@@ -197,7 +305,9 @@ body::after{
   padding:12px 14px;margin-bottom:8px;font-size:.8rem;
   animation:slideIn .4s cubic-bezier(.34,1.56,.64,1);
   box-shadow:0 4px 16px rgba(0,0,0,0.3);
+  transition:all .3s;
 }
+.cart-item:hover{transform:translateX(4px);box-shadow:0 4px 20px rgba(168,85,247,0.3)}
 @keyframes slideIn{from{opacity:0;transform:translateX(-20px) scale(.9)}to{opacity:1;transform:translateX(0) scale(1)}}
 .cart-item-name{font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:.5px}
 .cart-item-qty{color:var(--accent);font-weight:800;font-size:.95rem;text-shadow:0 0 8px rgba(6,182,212,0.5)}
@@ -209,20 +319,25 @@ body::after{
 }
 .cart-item-remove:hover{background:var(--danger);color:#fff;transform:rotate(90deg) scale(1.1);box-shadow:0 0 16px rgba(239,68,68,0.6)}
 
+/* === 총합 박스 === */
 .total-box{
   background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(6,182,212,0.1));
   border:2px solid rgba(168,85,247,0.3);border-radius:14px;
   padding:16px;text-align:center;margin:16px 0;
   box-shadow:0 0 30px rgba(124,58,237,0.3),inset 0 1px 0 rgba(255,255,255,0.1);
+  animation:totalIn .4s cubic-bezier(.34,1.56,.64,1);
 }
+@keyframes totalIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
 .total-box .label{font-size:.7rem;color:var(--sub);text-transform:uppercase;letter-spacing:2px;font-weight:700}
 .total-box .count{
   font-size:1.8rem;font-weight:900;
   background:linear-gradient(135deg,#fff,var(--primary2),var(--accent));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
   background-size:200% 200%;animation:gradientFlow 3s ease infinite;margin-top:6px;
 }
 
+/* === 입력 필드 === */
 .input-wrap{position:relative;margin-bottom:12px}
 input,textarea,select{
   width:100%;padding:14px 16px 14px 44px;border-radius:12px;
@@ -235,6 +350,7 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(6,182,212,0.2),
 .input-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:1rem;transition:all .3s}
 input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,182,212,0.6))}
 
+/* === 버튼 (고사양) === */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:10px;
   padding:16px 24px;border-radius:14px;border:none;
@@ -243,48 +359,66 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
   width:100%;font-family:'Exo 2',sans-serif;
   position:relative;overflow:hidden;letter-spacing:1px;
 }
+.btn::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  transition:left .5s;
+}
+.btn:hover::before{left:100%}
 .btn:active{transform:scale(.96)}
 .btn-success{
   background:linear-gradient(135deg,#10b981,#06b6d4,#3b82f6);
+  background-size:200% 200%;
   color:#fff;box-shadow:0 6px 24px rgba(6,182,212,0.5);
+  animation:gradientFlow 4s ease infinite;
 }
 .btn-success:hover{box-shadow:0 12px 36px rgba(6,182,212,0.7);transform:translateY(-3px);filter:brightness(1.15)}
 .btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
 
-/* 처리 현황 영역 - 고정 높이로 레이아웃 시프트 방지 */
+/* === 처리 현황 === */
 .status-area{min-height:0;transition:min-height .3s ease}
 .status-area.active{min-height:80px}
-.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:.8rem;margin-bottom:10px;font-weight:700;letter-spacing:.5px}
-.status-bar.pending{background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.08));color:var(--accent);border:1.5px solid rgba(251,191,36,0.3);box-shadow:0 0 20px rgba(251,191,36,0.2)}
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:.8rem;margin-bottom:10px;font-weight:700;letter-spacing:.5px;animation:statusIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes statusIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.status-bar.pending{background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.08));color:var(--gold);border:1.5px solid rgba(251,191,36,0.3);box-shadow:0 0 20px rgba(251,191,36,0.2)}
 .status-bar.success{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(52,211,153,0.08));color:var(--success);border:1.5px solid rgba(16,185,129,0.3);box-shadow:0 0 20px rgba(16,185,129,0.2)}
 .status-bar.error{background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.08));color:var(--danger);border:1.5px solid rgba(239,68,68,0.3);box-shadow:0 0 20px rgba(239,68,68,0.2)}
 
-/* 부드러운 스피너 */
+/* === 스피너 === */
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.12);border-top-color:var(--accent);border-right-color:var(--primary2);border-radius:50%;animation:spin .6s linear infinite;will-change:transform}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* === 결과 박스 === */
 .result-box{display:none;padding:20px;border-radius:16px;margin-top:16px}
 .result-box.show{display:block;animation:resultIn .5s cubic-bezier(.34,1.56,.64,1)}
 @keyframes resultIn{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 .result-box.success{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(6,182,212,0.08));border:2px solid rgba(16,185,129,0.4);box-shadow:0 0 40px rgba(16,185,129,0.3)}
 .result-box.error{background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(236,72,153,0.08));border:2px solid rgba(239,68,68,0.4);box-shadow:0 0 40px rgba(239,68,68,0.3)}
 
-.toast{position:fixed;top:20px;right:20px;z-index:9999;background:rgba(20,20,40,0.95);backdrop-filter:blur(20px);border-radius:14px;padding:14px 18px;box-shadow:0 12px 40px rgba(0,0,0,0.6);border-left:4px solid var(--accent);max-width:340px;animation:toastIn .4s cubic-bezier(.34,1.56,.64,1);border:1px solid rgba(168,85,247,0.3)}
+/* === 토스트 === */
+.toast{position:fixed;top:20px;right:20px;z-index:9999;background:rgba(20,20,40,0.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px;padding:14px 18px;box-shadow:0 12px 40px rgba(0,0,0,0.6);border-left:4px solid var(--accent);max-width:340px;animation:toastIn .4s cubic-bezier(.34,1.56,.64,1);border:1px solid rgba(168,85,247,0.3)}
 .toast strong{display:block;margin-bottom:4px;font-size:.9rem;font-weight:800;letter-spacing:.5px}
 .toast small{cursor:pointer;opacity:.6;display:block;margin-top:6px;font-size:.65rem;text-align:right}
 @keyframes toastIn{from{transform:translateX(120%) scale(.9);opacity:0}to{transform:translateX(0) scale(1);opacity:1}}
+.toast.out{animation:toastOut .3s ease forwards}
+@keyframes toastOut{to{transform:translateX(120%) scale(.9);opacity:0}}
 
-.particle{position:fixed;pointer-events:none;z-index:9998;border-radius:50%}
 .confetti{position:fixed;pointer-events:none;z-index:9997}
 
-@media(max-width:768px){.items-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}.container{padding:12px}.hero{padding:24px 16px}.hero h1{font-size:1.5rem}}
+@media(max-width:768px){.items-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}.container{padding:12px}.hero{padding:24px 16px}.hero h1{font-size:1.5rem}.header{flex-direction:column;gap:10px}.my-key-box{width:100%;justify-content:center}}
 </style>
 </head>
 <body>
+<canvas id="particleCanvas"></canvas>
 <div class="container">
   <header class="header">
-    <div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v11.0</span></div>
-    <div id="myKeyBox" style="display:none;font-size:.72rem;color:var(--accent);background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);padding:6px 12px;border-radius:10px;cursor:pointer;" onclick="copyMyKey()"><i class="fas fa-key"></i> <span id="myKeyText"></span> <i class="fas fa-copy"></i></div>
+    <div class="logo">🐱 NYANKO AUTO CHARGE <span class="badge">v12.0</span></div>
+    <div id="myKeyBox" class="my-key-box" style="display:none;" onclick="toggleKeyReveal()">
+      <i class="fas fa-key"></i>
+      <span class="key-text hidden" id="myKeyText">****</span>
+      <span class="in-use-badge" id="inUseBadge" style="display:none;">사용중</span>
+      <button class="copy-btn" onclick="event.stopPropagation();copyMyKey()" title="키 복사"><i class="fas fa-copy"></i></button>
+    </div>
   </header>
 
   <div class="hero">
@@ -311,7 +445,9 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
   </div>
 
   <div class="card">
-    <div class="card-title"><i class="fas fa-user"></i>이름 & 계정 정보</div><div class="input-wrap"><input type="text" id="buyerName" placeholder="이름 (닉네임)"><i class="fas fa-user input-icon"></i></div><div style="font-size:.72rem;color:var(--accent);margin:-4px 0 12px 4px;"><i class="fas fa-info-circle"></i> 새 기기이전코드를 발급하다가 오류가 나면 적힌 이름으로 확인할 수 있습니다!</div>
+    <div class="card-title"><i class="fas fa-user"></i>이름 & 계정 정보</div>
+    <div class="input-wrap"><input type="text" id="buyerName" placeholder="이름 (닉네임)"><i class="fas fa-user input-icon"></i></div>
+    <div style="font-size:.72rem;color:var(--accent);margin:-4px 0 12px 4px;"><i class="fas fa-info-circle"></i> 새 기기이전코드를 발급하다가 오류가 나면 적힌 이름으로 확인할 수 있습니다!</div>
     <div class="input-wrap"><input type="text" id="transferCode" placeholder="기기이전 코드 (16자리)"><i class="fas fa-mobile-screen input-icon"></i></div>
     <div class="input-wrap"><input type="text" id="confirmationCode" placeholder="인증번호 (8자리 숫자)"><i class="fas fa-shield-halved input-icon"></i></div>
   </div>
@@ -326,18 +462,89 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 const items = {{ items|tojson }};
 let cart = {};
 let currentTab = '통조림';
+let keyRevealed = false;
+let myKeyData = null;
 const categories = [...new Set(items.map(i => i.category))];
+
+// === 파티클 배경 (고사양) ===
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resizeCanvas();
+window.addEventListener('resize',resizeCanvas);
+
+function initParticles(){
+  particles = [];
+  const count = Math.min(50, Math.floor(window.innerWidth/30));
+  for(let i=0;i<count;i++){
+    particles.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height,
+      r:Math.random()*2+0.5,
+      vx:(Math.random()-0.5)*0.3,
+      vy:(Math.random()-0.5)*0.3,
+      hue:Math.random()*60+260,
+      alpha:Math.random()*0.5+0.1
+    });
+  }
+}
+initParticles();
+
+function animateParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<particles.length;i++){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0||p.x>canvas.width)p.vx*=-1;
+    if(p.y<0||p.y>canvas.height)p.vy*=-1;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${p.hue},80%,60%,${p.alpha})`;
+    ctx.shadowBlur=10;
+    ctx.shadowColor=`hsla(${p.hue},80%,60%,0.5)`;
+    ctx.fill();
+    // 연결선
+    for(let j=i+1;j<particles.length;j++){
+      const p2=particles[j];
+      const dx=p.x-p2.x,dy=p.y-p2.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y);
+        ctx.lineTo(p2.x,p2.y);
+        ctx.strokeStyle=`hsla(${p.hue},80%,60%,${0.15*(1-dist/120)})`;
+        ctx.lineWidth=0.5;
+        ctx.shadowBlur=0;
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// === 카드 마우스 트래킹 ===
+document.querySelectorAll('.card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const rect=card.getBoundingClientRect();
+    const x=((e.clientX-rect.left)/rect.width)*100;
+    const y=((e.clientY-rect.top)/rect.height)*100;
+    card.style.setProperty('--mx',x+'%');
+    card.style.setProperty('--my',y+'%');
+  });
+});
 
 function renderTabs(){
   const cont = document.getElementById('categoryTabs');
-  cont.innerHTML = categories.map(c => `<div class="tab ${c===currentTab?'active':''}" onclick="switchTab('${c}')">${c}</div>`).join('');
+  cont.innerHTML = categories.map((c,idx) => `<div class="tab ${c===currentTab?'active':''}" onclick="switchTab('${c}')" style="animation:itemIn .3s cubic-bezier(.34,1.56,.64,1) ${idx*0.05}s backwards">${c}</div>`).join('');
 }
 function switchTab(cat){currentTab = cat; renderTabs(); renderItems();}
 
 function renderItems(){
   const cont = document.getElementById('itemsGrid');
   const filtered = items.filter(i => i.category === currentTab);
-  cont.innerHTML = filtered.map(item => {
+  cont.innerHTML = filtered.map((item,idx) => {
     const qty = cart[item.id] || 0;
     const selected = qty > 0 ? 'selected' : '';
     let extraInputs = '';
@@ -349,7 +556,7 @@ function renderItems(){
       }
       if (item.needs_custom_amount) extraInputs += `<div class="cat-inputs"><label>수량 입력</label><input type="number" value="${cart[item.id+'_customAmt']||''}" placeholder="예: 5000" oninput="saveCustomAmt('${item.id}',this.value)" onclick="event.stopPropagation()"></div>`;
     }
-    return `<div class="item-card ${selected}" onclick="toggleItem('${item.id}',event)" data-id="${item.id}">
+    return `<div class="item-card ${selected}" onclick="toggleItem('${item.id}',event)" data-id="${item.id}" style="animation-delay:${idx*0.03}s">
       <div class="item-icon">${item.icon}</div>
       <div class="item-name">${item.name}</div>
       ${selected?`<div style="position:absolute;top:6px;right:6px;background:var(--accent);color:#000;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:20px;box-shadow:0 0 10px rgba(6,182,238,0.6)">✓ ${qty}</div>`:''}
@@ -466,36 +673,115 @@ function showResult(order){
   rb.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-function saveAsImage(){
+// === 이미지 저장 (폰트 로딩 + 텍스트 자동 맞춤) ===
+async function saveAsImage(){
   const newTc = document.getElementById('newTc')?document.getElementById('newTc').textContent:'N/A';
   const newCc = document.getElementById('newCc')?document.getElementById('newCc').textContent:'N/A';
   toast('이미지 저장','이미지를 생성 중입니다...','var(--accent)');
+
+  // 폰트 로딩 대기
+  try{await document.fonts.ready;}catch(e){}
+
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  canvas.width=800; canvas.height=500;
-  const grad = ctx.createLinearGradient(0,0,800,500);
-  grad.addColorStop(0,'#000010'); grad.addColorStop(0.5,'#0a0a1a'); grad.addColorStop(1,'#000010');
-  ctx.fillStyle=grad; ctx.fillRect(0,0,800,500);
-  ctx.strokeStyle='rgba(168,85,247,0.6)'; ctx.lineWidth=3; ctx.strokeRect(10,10,780,480);
-  ctx.fillStyle='#a855f7'; ctx.font='bold 28px Exo 2,sans-serif'; ctx.textAlign='center';
-  ctx.fillText('🐱 냥코 자동충전',400,55);
-  ctx.fillStyle='#06b6d4'; ctx.font='16px Exo 2,sans-serif';
-  ctx.fillText('새 기기이전 코드 & 인증번호',400,95);
-  ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.strokeStyle='rgba(168,85,247,0.4)'; ctx.lineWidth=2;
-  roundRect(ctx,40,120,720,140,16); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Exo 2,sans-serif'; ctx.textAlign='left';
-  ctx.fillText('📋 새 전송코드',60,155);
-  ctx.fillStyle='#34d399'; ctx.font='bold 24px monospace'; ctx.textAlign='center';
-  ctx.fillText(newTc,400,225);
-  ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.strokeStyle='rgba(168,85,247,0.4)';
-  roundRect(ctx,40,290,720,140,16); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#94a3b8'; ctx.font='bold 16px Exo 2,sans-serif'; ctx.textAlign='left';
-  ctx.fillText('🔒 새 인증번호',60,325);
-  ctx.fillStyle='#a855f7'; ctx.font='bold 24px monospace'; ctx.textAlign='center';
-  ctx.fillText(newCc,400,395);
-  ctx.fillStyle='#64748b'; ctx.font='12px Exo 2,sans-serif'; ctx.textAlign='center';
-  ctx.fillText('생성일: '+new Date().toLocaleString('ko-KR'),400,455);
-  ctx.fillText('BCSFE Ultimate v11.0',400,475);
+  const W=800, H=560;
+  canvas.width=W; canvas.height=H;
+
+  // 배경 그라데이션
+  const grad = ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0,'#000010');
+  grad.addColorStop(0.5,'#0a0a2a');
+  grad.addColorStop(1,'#000010');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,W,H);
+
+  // 글로우 효과
+  const glowGrad = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W/2);
+  glowGrad.addColorStop(0,'rgba(124,58,237,0.15)');
+  glowGrad.addColorStop(1,'transparent');
+  ctx.fillStyle=glowGrad;
+  ctx.fillRect(0,0,W,H);
+
+  // 테두리
+  ctx.strokeStyle='rgba(168,85,247,0.6)';
+  ctx.lineWidth=3;
+  roundRect(ctx,10,10,W-20,H-20,16);
+  ctx.stroke();
+
+  // 상단 라인
+  const lineGrad = ctx.createLinearGradient(0,0,W,0);
+  lineGrad.addColorStop(0,'transparent');
+  lineGrad.addColorStop(0.5,'rgba(168,85,247,0.8)');
+  lineGrad.addColorStop(1,'transparent');
+  ctx.strokeStyle=lineGrad;
+  ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(40,80);ctx.lineTo(W-40,80);ctx.stroke();
+
+  // 제목
+  ctx.fillStyle='#a855f7';
+  ctx.font='bold 32px "Exo 2",sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('🐱 냥코 자동충전',W/2,55);
+
+  ctx.fillStyle='#06b6d4';
+  ctx.font='18px "Exo 2",sans-serif';
+  ctx.fillText('새 기기이전 코드 & 인증번호',W/2,100);
+
+  // 전송코드 박스
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.strokeStyle='rgba(168,85,247,0.4)';
+  ctx.lineWidth=2;
+  roundRect(ctx,40,130,W-80,150,16);
+  ctx.fill();ctx.stroke();
+
+  ctx.fillStyle='#94a3b8';
+  ctx.font='bold 18px "Exo 2",sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText('📋 새 전송코드',60,165);
+
+  // 텍스트 자동 맞춤 (핵심 수정)
+  ctx.fillStyle='#34d399';
+  let fontSize = 28;
+  ctx.font='bold '+fontSize+'px "Courier New",monospace';
+  let textWidth = ctx.measureText(newTc).width;
+  while(textWidth > W-120 && fontSize > 12){
+    fontSize -= 2;
+    ctx.font='bold '+fontSize+'px "Courier New",monospace';
+    textWidth = ctx.measureText(newTc).width;
+  }
+  ctx.textAlign='center';
+  ctx.fillText(newTc,W/2,230);
+
+  // 인증번호 박스
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.strokeStyle='rgba(168,85,247,0.4)';
+  roundRect(ctx,40,310,W-80,150,16);
+  ctx.fill();ctx.stroke();
+
+  ctx.fillStyle='#94a3b8';
+  ctx.font='bold 18px "Exo 2",sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText('🔒 새 인증번호',60,345);
+
+  ctx.fillStyle='#a855f7';
+  fontSize = 28;
+  ctx.font='bold '+fontSize+'px "Courier New",monospace';
+  textWidth = ctx.measureText(newCc).width;
+  while(textWidth > W-120 && fontSize > 12){
+    fontSize -= 2;
+    ctx.font='bold '+fontSize+'px "Courier New",monospace';
+    textWidth = ctx.measureText(newCc).width;
+  }
+  ctx.textAlign='center';
+  ctx.fillText(newCc,W/2,410);
+
+  // 하단 정보
+  ctx.fillStyle='#64748b';
+  ctx.font='13px "Exo 2",sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('생성일: '+new Date().toLocaleString('ko-KR'),W/2,495);
+  ctx.fillText('BCSFE Ultimate v12.0',W/2,515);
+
   canvas.toBlob(blob=>{
     const url=URL.createObjectURL(blob);
     const isMobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -517,28 +803,54 @@ function saveAsImage(){
   }
 }
 
+// === 복사 함수 (개선된 버전 - fallback 포함) ===
 function copyCode(id){
   const el=document.getElementById(id);
   if(!el){toast('복사 실패','코드를 찾을 수 없습니다.','var(--danger)');return;}
   const text=el.textContent;
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(()=>toast('복사 완료','코드가 클립보드에 복사되었습니다.','var(--success)')).catch(()=>fallbackCopy(text));
-  } else { fallbackCopy(text); }
-  function fallbackCopy(t){
-    const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
-    try{document.execCommand('copy');toast('복사 완료','코드가 클립보드에 복사되었습니다.','var(--success)');}catch(e){toast('복사 실패','수동으로 복사해주세요.','var(--danger)');}
+  copyToClipboard(text,'코드가 클립보드에 복사되었습니다.');
+}
+
+function copyToClipboard(text,successMsg){
+  if(navigator.clipboard&&navigator.clipboard.writeText&&window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>{
+      toast('복사 완료',successMsg,'var(--success)');
+    }).catch(()=>{
+      fallbackCopy(text,successMsg);
+    });
+  } else {
+    fallbackCopy(text,successMsg);
+  }
+  function fallbackCopy(t,msg){
+    const ta=document.createElement('textarea');
+    ta.value=t;
+    ta.style.position='fixed';
+    ta.style.left='-9999px';
+    ta.style.top='0';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{
+      const ok=document.execCommand('copy');
+      if(ok){toast('복사 완료',msg,'var(--success)');}
+      else{toast('복사 실패','수동으로 복사해주세요: '+t,'var(--danger)');}
+    }catch(e){
+      toast('복사 실패','수동으로 복사해주세요: '+t,'var(--danger)');
+    }
     document.body.removeChild(ta);
   }
 }
 
 function confetti(){
   const colors=['#a855f7','#06b6d4','#ec4899','#fbbf24','#10b981','#f59e0b'];
-  for(let i=0;i<80;i++){
+  for(let i=0;i<100;i++){
     const c=document.createElement('div');c.className='confetti';
     c.style.left=Math.random()*100+'vw';c.style.top='-20px';
     c.style.background=colors[Math.floor(Math.random()*colors.length)];
     c.style.borderRadius=Math.random()>0.5?'50%':'2px';
     c.style.width=(6+Math.random()*8)+'px';c.style.height=(6+Math.random()*12)+'px';
+    c.style.boxShadow='0 0 10px '+c.style.background;
     document.body.appendChild(c);
     const dur=2000+Math.random()*2000;
     c.animate([{transform:'translateY(0) rotate(0deg)',opacity:1},{transform:'translateY('+(window.innerHeight+40)+'px) rotate('+(720*Math.random())+'deg)',opacity:0}],{duration:dur,easing:'cubic-bezier(.3,.7,.5,1)'});
@@ -550,19 +862,44 @@ function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x
 
 function toast(t,m,c){const d=document.createElement('div');d.className='toast';d.style.borderLeftColor=c||'var(--accent)';d.innerHTML='<strong>'+t+'</strong>'+m.replace(/\n/g,'<br>')+'<small onclick="this.parentElement.classList.add(\'out\');setTimeout(()=>this.parentElement.remove(),300)">닫기</small>';document.body.appendChild(d);setTimeout(()=>{if(d.parentElement){d.classList.add('out');setTimeout(()=>d.remove(),300);}},8000);}
 
-// 내 키 표시
+// === 내 키 표시 (클릭 시 표시, 복사 수정) ===
 function showMyKey(){
   fetch('/api/my-key').then(r=>r.json()).then(data=>{
     if(data.key){
-      document.getElementById('myKeyBox').style.display='block';
+      myKeyData = data;
+      document.getElementById('myKeyBox').style.display='flex';
       document.getElementById('myKeyText').textContent=data.key;
+      document.getElementById('myKeyText').classList.add('hidden');
+      document.getElementById('myKeyText').classList.remove('revealed');
+      keyRevealed = false;
+      if(data.in_use){
+        document.getElementById('inUseBadge').style.display='inline-block';
+      }
     }
   }).catch(()=>{});
 }
-function copyMyKey(){
-  const k=document.getElementById('myKeyText').textContent;
-  navigator.clipboard.writeText(k).then(()=>toast('복사 완료','키가 복사되었습니다.','var(--success)')).catch(()=>{});
+
+function toggleKeyReveal(){
+  const el = document.getElementById('myKeyText');
+  if(keyRevealed){
+    el.classList.add('hidden');
+    el.classList.remove('revealed');
+    keyRevealed = false;
+  } else {
+    el.classList.remove('hidden');
+    el.classList.add('revealed');
+    keyRevealed = true;
+  }
 }
+
+function copyMyKey(){
+  if(!myKeyData || !myKeyData.key){
+    toast('복사 실패','키를 찾을 수 없습니다.','var(--danger)');
+    return;
+  }
+  copyToClipboard(myKeyData.key,'키가 클립보드에 복사되었습니다.');
+}
+
 showMyKey();
 
 renderTabs(); renderItems();

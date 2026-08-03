@@ -4,6 +4,7 @@ import os
 import threading
 import secrets
 import time
+import hashlib
 from datetime import datetime, timedelta
 from bcsfe_handler_full import process_all_items
 from config import (
@@ -135,14 +136,68 @@ def save_settings(settings):
 def is_key_purchase_enabled():
     return load_settings().get("key_purchase_enabled", KEY_PURCHASE_ENABLED)
 
-def is_key_valid(key):
+# ========== 기기绑定 (Device Binding) 시스템 ==========
+
+def get_device_fingerprint():
+    """요청 헤더에서 기기 지문 생성"""
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown')
+    ua = request.headers.get('User-Agent', 'unknown')
+    accept = request.headers.get('Accept', '')
+    lang = request.headers.get('Accept-Language', '')
+    raw = f"{ip}|{ua}|{accept}|{lang}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+def get_device_id():
+    """쿠키 또는 지문에서 기기 ID 획득"""
+    device_id = request.cookies.get('device_id')
+    if device_id:
+        return device_id
+    return get_device_fingerprint()
+
+def get_device_info():
+    """사람이 읽을 수 있는 기기 정보"""
+    ua = request.headers.get('User-Agent', 'unknown')
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown')
+    is_mobile = any(m in ua for m in ['Mobile', 'iPhone', 'Android', 'iPad'])
+    device_type = '모바일' if is_mobile else 'PC'
+    browser = 'Unknown'
+    if 'Chrome' in ua and 'Edg' not in ua:
+        browser = 'Chrome'
+    elif 'Firefox' in ua:
+        browser = 'Firefox'
+    elif 'Safari' in ua and 'Chrome' not in ua:
+        browser = 'Safari'
+    elif 'Edg' in ua:
+        browser = 'Edge'
+    # OS 감지
+    if 'Windows' in ua:
+        os_name = 'Windows'
+    elif 'Mac' in ua:
+        os_name = 'macOS'
+    elif 'Android' in ua:
+        os_name = 'Android'
+    elif 'iPhone' in ua or 'iPad' in ua:
+        os_name = 'iOS'
+    elif 'Linux' in ua:
+        os_name = 'Linux'
+    else:
+        os_name = 'Unknown'
+    return f"{device_type} · {browser} · {os_name}"
+
+def is_key_valid(key, device_id=None):
+    """키 유효성 검사 (기기绑定 옵션)"""
     keys = load_access_keys()
     for k in keys:
         if k["key"] == key:
             expires_at = datetime.fromisoformat(k["expires_at"])
-            if datetime.now() < expires_at:
-                return True, k
-    return False, None
+            if datetime.now() >= expires_at:
+                return False, None, "expired"
+            if device_id:
+                bound_device = k.get("device_id")
+                if bound_device and bound_device != device_id:
+                    return False, None, "device_mismatch"
+            return True, k, None
+    return False, None, "not_found"
 
 # 아이템 정의
 def get_item_definitions():
@@ -195,6 +250,18 @@ def get_item_definitions():
         {"id": "unlock_equip", "type": "unlock_equip", "name": "장비 메뉴 해제", "icon": "🔓", "category": "기타기능", "price": 0},
     ]
 
+# 기기 ID 쿠키 자동 설정
+@app.after_request
+def set_device_cookie(response):
+    try:
+        if not request.cookies.get('device_id'):
+            device_id = get_device_id()
+            response.set_cookie('device_id', device_id,
+                                max_age=365*24*3600, httponly=True, samesite='Lax')
+    except Exception:
+        pass
+    return response
+
 # 접근 키 게이트
 @app.before_request
 def check_access_key():
@@ -204,34 +271,68 @@ def check_access_key():
             return
     user_key = session.get('access_key')
     if user_key:
-        valid, _ = is_key_valid(user_key)
+        device_id = get_device_id()
+        valid, _, error = is_key_valid(user_key, device_id)
         if valid:
             return
+        if error == "device_mismatch":
+            session.pop('access_key', None)
+            return redirect(url_for('gate', error='device'))
     return redirect(url_for('gate'))
 
 # 게이트
 @app.route("/gate")
 def gate():
+    error = request.args.get('error', '')
     user_key = session.get('access_key')
     if user_key:
-        valid, _ = is_key_valid(user_key)
+        device_id = get_device_id()
+        valid, _, _ = is_key_valid(user_key, device_id)
         if valid:
             return redirect(url_for('index'))
-    return render_template("gate.html", key_purchase_enabled=is_key_purchase_enabled())
+    return render_template("gate.html", key_purchase_enabled=is_key_purchase_enabled(), error=error)
 
 @app.route("/api/verify-key", methods=["POST"])
 def verify_key():
     data = request.json
     key = data.get("key", "").strip()
-    valid, key_data = is_key_valid(key)
+    device_id = get_device_id()
+    valid, key_data, error = is_key_valid(key, device_id)
     if valid:
+        # 기기绑定 (첫 사용 시)
+        is_new_binding = False
+        if not key_data.get("device_id"):
+            keys = load_access_keys()
+            for k in keys:
+                if k["key"] == key:
+                    k["device_id"] = device_id
+                    k["bound_at"] = datetime.now().isoformat()
+                    k["device_info"] = get_device_info()
+                    is_new_binding = True
+                    break
+            save_access_keys(keys)
+            add_log("키 적용", f"키 기기绑定 완료", f"키: {key[:8]}... 기기: {get_device_info()}")
+        
         session.permanent = True
         session['access_key'] = key
         expires_at = datetime.fromisoformat(key_data['expires_at'])
         app.permanent_session_lifetime = expires_at - datetime.now()
         add_log("키 사용", f"키 접속 성공", f"키: {key[:8]}... 만료: {key_data['expires_at']}")
-        return jsonify({"success": True, "message": "접근이 허용되었습니다"})
-    return jsonify({"success": False, "error": "유효하지 않거나 만료된 키입니다"}), 403
+        return jsonify({
+            "success": True,
+            "message": "키가 적용되었습니다!",
+            "applied": True,
+            "in_use": True,
+            "is_new_binding": is_new_binding,
+            "device_info": key_data.get("device_info", get_device_info())
+        })
+    
+    error_messages = {
+        "expired": "키가 만료되었습니다",
+        "device_mismatch": "이 키는 다른 기기에서 이미 사용 중입니다 (키 1개 = 1기기 전용)",
+        "not_found": "유효하지 않거나 만료된 키입니다"
+    }
+    return jsonify({"success": False, "error": error_messages.get(error, "유효하지 않거나 만료된 키입니다")}), 403
 
 # 쿠폰 코드 시스템
 @app.route("/api/redeem-coupon", methods=["POST"])
@@ -249,12 +350,16 @@ def redeem_coupon():
     new_key = secrets.token_urlsafe(16)
     activated_at = datetime.now()
     expires_at = activated_at + timedelta(days=coupon["days"])
+    device_id = get_device_id()
     keys = load_access_keys()
     key_entry = {
         "key": new_key,
         "created_at": activated_at.isoformat(),
         "expires_at": expires_at.isoformat(),
-        "label": f"쿠폰-{code[:8]}...-{coupon.get('label', '')}"
+        "label": f"쿠폰-{code[:8]}...-{coupon.get('label', '')}",
+        "device_id": device_id,
+        "bound_at": activated_at.isoformat(),
+        "device_info": get_device_info()
     }
     keys.append(key_entry)
     save_access_keys(keys)
@@ -277,7 +382,18 @@ def redeem_coupon():
 @app.route("/api/my-key")
 def my_key():
     key = session.get('access_key', '')
-    return jsonify({"key": key})
+    device_id = get_device_id()
+    if key:
+        valid, key_data, _ = is_key_valid(key, device_id)
+        if valid:
+            return jsonify({
+                "key": key,
+                "in_use": bool(key_data.get("device_id")),
+                "device_info": key_data.get("device_info", ""),
+                "bound_at": key_data.get("bound_at", ""),
+                "expires_at": key_data.get("expires_at", "")
+            })
+    return jsonify({"key": ""})
 
 # 헬스체크
 @app.route("/health")
