@@ -322,13 +322,23 @@ function toast(t,m,c){
   setTimeout(()=>{d.classList.add('out');setTimeout(()=>d.remove(),300);},4000);
 }
 
+// === 시간 변환 (UTC → KST) ===
+function formatKST(isoStr){
+  if(!isoStr) return '-';
+  try{
+    const d = new Date(isoStr);
+    if(isNaN(d.getTime())) return isoStr;
+    return d.toLocaleString('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  }catch(e){ return isoStr; }
+}
+
 // === 쿠폰 관리 ===
 function loadCoupons(){
   fetch('/api/admin/coupons/list').then(r=>r.json()).then(data=>{
     const l=document.getElementById('couponList');
     if(!data.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">쿠폰이 없습니다</p>';return;}
     l.innerHTML='<table><thead><tr><th>코드</th><th>기간</th><th>상태</th><th>라벨</th><th>생성일</th><th></th></tr></thead><tbody>'+
-    data.map(c=>'<tr><td style="font-weight:700;color:var(--accent)">'+c.code+'</td><td>'+c.days+'일</td><td><span class="badge '+(c.used?'danger':'success')+'">'+(c.used?'사용됨':'미사용')+'</span></td><td style="font-size:.72rem">'+(c.label||'-')+'</td><td style="font-size:.72rem;color:var(--sub)">'+(c.created_at?c.created_at.slice(0,19):'-')+'</td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteCoupon(\''+c.code+'\')">삭제</button></td></tr>').join('')+
+    data.map(c=>'<tr><td style="font-weight:700;color:var(--accent)">'+c.code+'</td><td>'+c.days+'일</td><td><span class="badge '+(c.used?'danger':'success')+'">'+(c.used?'사용됨':'미사용')+'</span></td><td style="font-size:.72rem">'+(c.label||'-')+'</td><td style="font-size:.72rem;color:var(--sub)">'+formatKST(c.created_at)+'</td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteCoupon(\''+c.code+'\')">삭제</button></td></tr>').join('')+
     '</tbody></table>';
   });
 }
@@ -357,7 +367,7 @@ function loadLogs(){
 function renderLogs(logs){
   const l=document.getElementById('logList');
   if(!logs.length){l.innerHTML='<p style="color:var(--sub);text-align:center;padding:20px">로그가 없습니다</p>';return;}
-  l.innerHTML=logs.slice().reverse().map(lg=>'<div class="log-entry"><div class="log-time">'+(lg.timestamp?lg.timestamp.slice(0,19):'-')+'</div><div class="log-cat" style="color:'+getCatColor(lg.category)+'">'+lg.category+'</div><div class="log-msg">'+lg.message+(lg.detail?'<div class="log-detail">'+lg.detail+'</div>':'')+'</div><button class="log-delete" onclick="deleteLog(\''+lg.id+'\')"><i class="fas fa-times"></i></button></div>').join('');
+  l.innerHTML=logs.slice().reverse().map(lg=>'<div class="log-entry"><div class="log-time">'+formatKST(lg.timestamp)+'</div><div class="log-cat" style="color:'+getCatColor(lg.category)+'">'+lg.category+'</div><div class="log-msg">'+lg.message+(lg.detail?'<div class="log-detail">'+lg.detail+'</div>':'')+'</div><button class="log-delete" onclick="deleteLog(\''+lg.id+'\')"><i class="fas fa-times"></i></button></div>').join('');
 }
 function getCatColor(cat){
   const c={'충전 완료':'var(--success)','충전 실패':'var(--danger)','충전 시작':'var(--gold)','충전 오류':'var(--danger)','쿠폰 생성':'var(--accent)','쿠폰 사용':'var(--primary2)','쿠폰 삭제':'var(--danger)','키 생성':'var(--accent)','키 사용':'var(--primary2)','키 적용':'var(--success)','키 삭제':'var(--danger)','주문 생성':'var(--gold)','관리자':'var(--primary2)','설정':'var(--sub)','로그':'var(--danger)'};
@@ -380,7 +390,7 @@ function loadKeys(){
     data.map(k=>{
       const inUse=k.device_id?'<span class="in-use-badge">사용중</span>':'<span class="badge info">미사용</span>';
       const deviceInfo=k.device_info?'<div class="device-info"><i class="fas fa-mobile-screen"></i>'+k.device_info+'</div>':'-';
-      return '<tr><td style="font-size:.72rem;font-family:monospace">'+k.key+'</td><td style="font-size:.72rem">'+(k.expires_at?k.expires_at.slice(0,19):'-')+'</td><td><span class="badge '+(k.is_expired?'danger':'success')+'">'+(k.is_expired?'만료':'유효')+'</span></td><td>'+inUse+'<br>'+deviceInfo+'</td><td style="font-size:.72rem">'+(k.label||'-')+'</td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:.7rem;margin-bottom:4px" onclick="copyKey(\''+k.key+'\')">복사</button><br><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\''+k.key+'\')">삭제</button></td></tr>';
+      return '<tr><td style="font-size:.72rem;font-family:monospace">'+k.key+'</td><td style="font-size:.72rem">'+formatKST(k.expires_at)+'</td><td><span class="badge '+(k.is_expired?'danger':'success')+'">'+(k.is_expired?'만료':'유효')+'</span></td><td>'+inUse+'<br>'+deviceInfo+'</td><td style="font-size:.72rem">'+(k.label||'-')+'</td><td><button class="btn btn-primary" style="padding:4px 10px;font-size:.7rem;margin-bottom:4px" onclick="copyKey(\''+k.key+'\')">복사</button><br><button class="btn btn-danger" style="padding:4px 10px;font-size:.7rem" onclick="deleteKey(\''+k.key+'\')">삭제</button></td></tr>';
     }).join('')+
     '</tbody></table>';
   });
