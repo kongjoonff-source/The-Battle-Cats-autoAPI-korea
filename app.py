@@ -185,10 +185,22 @@ def get_device_info():
     return f"{device_type} · {browser} · {os_name}"
 
 def is_key_valid(key, device_id=None):
-    """키 유효성 검사 (기기绑定 옵션)"""
+    """키 유효성 검사 (기기绑定 옵션)
+    
+    키가 아직 활성화되지 않은 경우(activated_at 없음) 시간이 흐르지 않음.
+    키를 사용(활성화)하면 그때부터 expires_at이 설정됨.
+    """
     keys = load_access_keys()
     for k in keys:
         if k["key"] == key:
+            # 아직 활성화되지 않은 키는 시간이 흐르지 않음
+            if not k.get("activated_at"):
+                if device_id:
+                    bound_device = k.get("device_id")
+                    if bound_device and bound_device != device_id:
+                        return False, None, "device_mismatch"
+                return True, k, None
+            # 활성화된 키는 만료 시간 확인
             expires_at = datetime.fromisoformat(k["expires_at"])
             if datetime.now() >= expires_at:
                 return False, None, "expired"
@@ -248,6 +260,17 @@ def get_item_definitions():
         {"id": "np_custom", "type": "np", "name": "NP 커스텀", "icon": "🧬", "category": "커스텀", "price": 0, "needs_custom_amount": True},
         {"id": "user_rank_calc", "type": "user_rank", "name": "유저랭크 재계산", "icon": "📊", "category": "기타기능", "price": 0},
         {"id": "unlock_equip", "type": "unlock_equip", "name": "장비 메뉴 해제", "icon": "🔓", "category": "기타기능", "price": 0},
+        # ===== BCSFE 스테이지 클리어 =====
+        {"id": "clear_chapter_1", "type": "clear_stages", "name": "제1장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 1},
+        {"id": "clear_chapter_2", "type": "clear_stages", "name": "제2장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 2},
+        {"id": "clear_chapter_3", "type": "clear_stages", "name": "제3장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 3},
+        {"id": "clear_chapter_4", "type": "clear_stages", "name": "미래편 제1장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 4},
+        {"id": "clear_chapter_5", "type": "clear_stages", "name": "미래편 제2장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 5},
+        {"id": "clear_chapter_6", "type": "clear_stages", "name": "미래편 제3장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 6},
+        {"id": "clear_chapter_7", "type": "clear_stages", "name": "우주편 제1장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 7},
+        {"id": "clear_chapter_8", "type": "clear_stages", "name": "우주편 제2장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 8},
+        {"id": "clear_chapter_9", "type": "clear_stages", "name": "우주편 제3장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 9},
+        {"id": "clear_all_stages", "type": "clear_all_stages", "name": "전체 스테이지 클리어", "icon": "🏆", "category": "스테이지", "price": 0},
     ]
 
 # 기기 ID 쿠키 자동 설정
@@ -294,37 +317,65 @@ def gate():
 
 @app.route("/api/verify-key", methods=["POST"])
 def verify_key():
+    """키 검증 및 활성화
+    
+    - 아직 활성화되지 않은 키: 기기绑定 + 활성화 (그때부터 시간 흐름)
+    - 이미 활성화된 키: 유효성만 확인
+    """
     data = request.json
     key = data.get("key", "").strip()
     device_id = get_device_id()
     valid, key_data, error = is_key_valid(key, device_id)
     if valid:
-        # 기기绑定 (첫 사용 시)
+        keys = load_access_keys()
         is_new_binding = False
-        if not key_data.get("device_id"):
-            keys = load_access_keys()
-            for k in keys:
-                if k["key"] == key:
+        is_new_activation = False
+        
+        for k in keys:
+            if k["key"] == key:
+                # 기기绑定 (첫 사용 시)
+                if not k.get("device_id"):
                     k["device_id"] = device_id
                     k["bound_at"] = datetime.now().isoformat()
                     k["device_info"] = get_device_info()
                     is_new_binding = True
-                    break
-            save_access_keys(keys)
-            add_log("키 적용", f"키 기기绑定 완료", f"키: {key[:8]}... 기기: {get_device_info()}")
+                
+                # 키 활성화 (사용 전까지 시간 안 흐름 → 사용하면 그때부터)
+                if not k.get("activated_at"):
+                    k["activated_at"] = datetime.now().isoformat()
+                    duration = int(k.get("duration", 1))
+                    unit = k.get("unit", "day")
+                    if unit == "hour":
+                        k["expires_at"] = (datetime.now() + timedelta(hours=duration)).isoformat()
+                    else:
+                        k["expires_at"] = (datetime.now() + timedelta(days=duration)).isoformat()
+                    is_new_activation = True
+                    add_log("키 활성화", f"키 활성화 시작", f"키: {key[:8]}... 기간: {duration}{'시간' if unit == 'hour' else '일'} 만료: {k['expires_at']}")
+                break
+        
+        save_access_keys(keys)
         
         session.permanent = True
         session['access_key'] = key
-        expires_at = datetime.fromisoformat(key_data['expires_at'])
-        app.permanent_session_lifetime = expires_at - datetime.now()
-        add_log("키 사용", f"키 접속 성공", f"키: {key[:8]}... 만료: {key_data['expires_at']}")
+        
+        # 세션 만료 시간 설정
+        if key_data.get("expires_at"):
+            try:
+                expires_at = datetime.fromisoformat(key_data["expires_at"])
+                app.permanent_session_lifetime = expires_at - datetime.now()
+            except:
+                app.permanent_session_lifetime = timedelta(days=365)
+        
+        add_log("키 사용", f"키 접속 성공", f"키: {key[:8]}... 만료: {key_data.get('expires_at', '활성화 전')}")
         return jsonify({
             "success": True,
-            "message": "키가 적용되었습니다!",
+            "message": "키가 적용되었습니다!" + (" (키가 활성화되어 시간이 흐르기 시작합니다!)" if is_new_activation else ""),
             "applied": True,
             "in_use": True,
             "is_new_binding": is_new_binding,
-            "device_info": key_data.get("device_info", get_device_info())
+            "is_new_activation": is_new_activation,
+            "device_info": key_data.get("device_info", get_device_info()),
+            "expires_at": key_data.get("expires_at", "")
         })
     
     error_messages = {
@@ -440,6 +491,8 @@ def submit_order():
                 detail["plus_level"] = int(sel.get("plus_level", -1))
             if match.get("needs_custom_amount"):
                 detail["amount"] = int(sel.get("custom_amount", 0))
+            if match.get("chapter_id"):
+                detail["chapter_id"] = int(match.get("chapter_id", 0))
             item_details.append(detail)
     if not item_details:
         return jsonify({"error": "유효한 아이템을 선택해주세요"}), 400
@@ -493,6 +546,8 @@ def process_order_direct():
                         entry["plus_level"] = item.get("plus_level", -1)
                     if item.get("needs_custom_amount"):
                         entry["amount"] = item.get("amount", 0)
+                    if item.get("chapter_id"):
+                        entry["chapter_id"] = item.get("chapter_id", 0)
                     bcsfe_items.append(entry)
             print(f"[APP] 처리 시작: {order['id']} / 이름: {order['buyer_name']}")
             success, new_tc, new_cc, error, results = process_all_items(
@@ -634,20 +689,49 @@ def admin_list_keys():
 
 @app.route("/api/admin/keys/generate", methods=["POST"])
 def admin_generate_key():
+    """키 생성 API - 일/시간 단위, 여러 개 한번에 생성 가능
+    
+    생성된 키는 사용(활성화) 전까지 시간이 흐르지 않음.
+    키를 사용하면 그때부터 expires_at이 설정됨.
+    """
     if not session.get('admin'):
         return jsonify({"error": "관리자 권한 필요"}), 403
     data = request.json
-    days = int(data.get("days", 1))
+    duration = int(data.get("duration", data.get("days", 1)))
+    unit = data.get("unit", "day")  # "day" or "hour"
+    count = int(data.get("count", 1))
     label = data.get("label", "")
-    new_key = secrets.token_urlsafe(16)
+    
+    if duration <= 0:
+        return jsonify({"error": "기간은 1 이상이어야 합니다"}), 400
+    if count <= 0 or count > 100:
+        return jsonify({"error": "생성 개수는 1~100개 사이여야 합니다"}), 400
+    
     created_at = datetime.now()
-    expires_at = created_at + timedelta(days=days)
     keys = load_access_keys()
-    key_entry = {"key": new_key, "created_at": created_at.isoformat(), "expires_at": expires_at.isoformat(), "label": label}
-    keys.append(key_entry)
+    generated_keys = []
+    
+    for _ in range(count):
+        new_key = secrets.token_urlsafe(16)
+        key_entry = {
+            "key": new_key,
+            "created_at": created_at.isoformat(),
+            "expires_at": None,  # 활성화 전까지 None (시간 안 흐름)
+            "duration": duration,
+            "unit": unit,
+            "activated_at": None,  # 아직 활성화 안됨
+            "label": label,
+            "device_id": None,
+            "bound_at": None,
+            "device_info": None
+        }
+        keys.append(key_entry)
+        generated_keys.append(key_entry)
+    
     save_access_keys(keys)
-    add_log("키 생성", f"키: {new_key[:8]}...", f"만료: {expires_at} 라벨: {label}")
-    return jsonify({"success": True, "key": key_entry})
+    unit_text = "시간" if unit == "hour" else "일"
+    add_log("키 생성", f"키 {count}개 생성", f"기간: {duration}{unit_text} 라벨: {label}")
+    return jsonify({"success": True, "keys": generated_keys, "count": count})
 
 @app.route("/api/admin/keys/<key>/delete", methods=["POST"])
 def admin_delete_key(key):

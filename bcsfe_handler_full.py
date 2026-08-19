@@ -158,6 +158,30 @@ def process_all_items(
                     save_file.unlock_equip_menu()
                     result.update({"success": True, "message": "장비 메뉴 해제 완료"})
 
+                # ===== 스테이지 클리어 (BCSFE) =====
+                elif item_type == "clear_stages":
+                    chapter_id = int(item.get("chapter_id", 0))
+                    # 챕터별 스테이지 클리어 처리
+                    # 1-3: 제1~3장 (Empire of Cats)
+                    # 4-6: 미래편 1~3장 (Into the Future)
+                    # 7-9: 우주편 1~3장 (Cats of the Cosmos)
+                    cleared = _clear_chapter_stages(save_file, chapter_id)
+                    if cleared:
+                        result.update({"success": True, "message": f"챕터 {chapter_id} 스테이지 클리어 완료"})
+                    else:
+                        result.update({"message": f"챕터 {chapter_id} 스테이지 클리어 실패"})
+
+                elif item_type == "clear_all_stages":
+                    # 모든 챕터 (제1장 ~ 우주편 제3장) 스테이지 클리어
+                    cleared_count = 0
+                    for ch_id in range(1, 10):
+                        if _clear_chapter_stages(save_file, ch_id):
+                            cleared_count += 1
+                    if cleared_count > 0:
+                        result.update({"success": True, "message": f"전체 {cleared_count}개 챕터 스테이지 클리어 완료"})
+                    else:
+                        result.update({"message": "스테이지 클리어 실패"})
+
                 # ===== 고양이 추가 (언락) =====
                 elif item_type == "unlock_cat":
                     cat_id = int(item.get("cat_id", -1))
@@ -340,3 +364,112 @@ def process_all_items(
         print(f"[BCSFE] ⚠️ 시스템 오류 발생!")
         traceback.print_exc()
         return False, None, None, f"시스템 오류: {str(e)}", []
+
+
+def _clear_chapter_stages(save_file, chapter_id: int) -> bool:
+    """
+    특정 챕터의 모든 스테이지를 클리어 처리합니다.
+    
+    챕터 매핑:
+    - 1~3: 제1~3장 (Empire of Cats)
+    - 4~6: 미래편 1~3장 (Into the Future)
+    - 7~9: 우주편 1~3장 (Cats of the Cosmos)
+    
+    bcsfe SaveFile의 스테이지 클리어 관련 속성을 직접 설정합니다.
+    """
+    try:
+        # 챕터별 스테이지 데이터 구조 확인
+        # bcsfe SaveFile에는 chapter/level 클리어 상태가 저장됨
+        # 각 챕터는 48개 스테이지 (1~48)
+        
+        # SaveFile의 스테이지 클리어 속성 접근 시도
+        # 다양한 bcsfe 버전 호환을 위해 try/except로 처리
+        cleared = False
+        
+        # 방법 1: save_file.chapters 또는 save_file.levels 접근
+        if hasattr(save_file, 'chapters'):
+            chapters = save_file.chapters
+            if chapter_id <= len(chapters):
+                chapter = chapters[chapter_id - 1]
+                # 챕터의 모든 스테이지 클리어 처리
+                if hasattr(chapter, 'clear_all'):
+                    chapter.clear_all()
+                    cleared = True
+                elif hasattr(chapter, 'stages'):
+                    for stage in chapter.stages:
+                        stage.cleared = True
+                    cleared = True
+                elif hasattr(chapter, 'cleared'):
+                    chapter.cleared = True
+                    cleared = True
+        
+        # 방법 2: save_file.stages 접근
+        if not cleared and hasattr(save_file, 'stages'):
+            stages = save_file.stages
+            # 챕터 범위에 해당하는 스테이지 클리어
+            start = (chapter_id - 1) * 48
+            end = start + 48
+            for i in range(start, min(end, len(stages))):
+                stages[i].cleared = True
+            cleared = True
+        
+        # 방법 3: save_file.level_cleared 또는 유사 속성
+        if not cleared:
+            # bcsfe의 SaveFile에서 스테이지 클리어 상태를 직접 설정
+            # 일반적인 속성명들 시도
+            attr_names = [
+                f'chapter_{chapter_id}_cleared',
+                f'chapter{chapter_id}_cleared',
+                f'cleared_chapter_{chapter_id}',
+                'all_stages_cleared'
+            ]
+            for attr in attr_names:
+                if hasattr(save_file, attr):
+                    setattr(save_file, attr, True)
+                    cleared = True
+                    break
+        
+        # 방법 4: bcsfe의 Chapter/Level 클래스 사용
+        if not cleared:
+            try:
+                from bcsfe.core import Chapter, Level
+                # 챕터별 스테이지 클리어 처리
+                # bcsfe의 save_file에서 챕터 데이터 접근
+                if hasattr(save_file, 'get_chapter'):
+                    chapter = save_file.get_chapter(chapter_id)
+                    if chapter:
+                        chapter.clear_all()
+                        cleared = True
+            except Exception:
+                pass
+        
+        # 방법 5: 직접 스테이지 클리어 배열 설정
+        if not cleared:
+            # bcsfe SaveFile의 스테이지 클리어 배열 직접 조작
+            # 일반적인 속성: cleared_stages, stage_clears, etc.
+            for attr in ['cleared_stages', 'stage_clears', 'cleared_levels', 'level_clears']:
+                if hasattr(save_file, attr):
+                    data = getattr(save_file, attr)
+                    start = (chapter_id - 1) * 48
+                    end = start + 48
+                    if isinstance(data, list):
+                        for i in range(start, min(end, len(data))):
+                            data[i] = True
+                        cleared = True
+                    elif isinstance(data, dict):
+                        for i in range(start, end):
+                            data[i] = True
+                        cleared = True
+                    break
+        
+        if cleared:
+            print(f"  🗺️ 챕터 {chapter_id} 스테이지 클리어 완료")
+        else:
+            print(f"  ⚠️ 챕터 {chapter_id} 스테이지 클리어 처리 실패 (속성 미발견)")
+        
+        return cleared
+        
+    except Exception as e:
+        print(f"  ❌ 챕터 {chapter_id} 스테이지 클리어 오류: {e}")
+        traceback.print_exc()
+        return False

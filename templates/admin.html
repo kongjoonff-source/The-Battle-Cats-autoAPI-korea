@@ -252,7 +252,7 @@ tr:hover{background:rgba(168,85,247,0.05)}
     <div class="stat-card"><div class="num" style="color:var(--danger)">{{ failed_orders }}</div><div class="label">실패</div></div>
   </div>
   <div class="card">
-    <div class="card-title"><span><i class="fas fa-ticket"></i>쿠폰 코드 관리</span><button class="btn-mini" onclick="toggleKeyPurchase()" id="toggleKeyBtn">{{ '활성화' if key_purchase_enabled else '비활성화' }}됨</button></div>
+    <div class="card-title"><span><i class="fas fa-ticket"></i>쿠폰 코드 관리</span><button class="btn-mini" onclick="toggleKeyPurchase()" id="toggleKeyBtn" data-enabled="{{ 'true' if key_purchase_enabled else 'false' }}">{{ '활성화' if key_purchase_enabled else '비활성화' }}됨</button></div>
     <div class="form-row">
       <input type="text" id="couponCode" placeholder="쿠폰 코드 (예: NYANKO2024)">
       <input type="number" id="couponDays" value="1" min="1" placeholder="일수" style="max-width:80px">
@@ -386,16 +386,38 @@ function loadKeys(){
   });
 }
 function generateKey(){
-  const days=prompt('키 기간(일):','1');if(!days)return;
+  const duration=prompt('키 기간:','7');if(!duration)return;
+  const unit=prompt('단위 (day=일, hour=시간):','day')||'day';
+  const count=prompt('생성 개수 (1~100):','1')||'1';
   const label=prompt('라벨 (선택):','')||'';
-  fetch('/api/admin/keys/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({days:parseInt(days),label})})
+  fetch('/api/admin/keys/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({duration:parseInt(duration),unit:unit,count:parseInt(count),label})})
   .then(r=>r.json()).then(data=>{
-    if(data.success){toast('생성 완료','키가 생성되었습니다','var(--success)');loadKeys();}
-    else{toast('오류','생성 실패','var(--danger)');}
+    if(data.success){
+      toast('생성 완료',data.count+'개의 키가 생성되었습니다','var(--success)');
+      // 생성된 키 자동 클립보드 복사
+      const keysText=data.keys.map(k=>k.key).join('\n');
+      copyToClipboard(keysText,'키가 클립보드에 복사되었습니다');
+      loadKeys();
+    }
+    else{toast('오류',data.error||'생성 실패','var(--danger)');}
   });
 }
+function copyToClipboard(text,msg){
+  if(navigator.clipboard&&navigator.clipboard.writeText&&window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>toast('복사 완료',msg,'var(--success)')).catch(()=>fallbackCopy(text,msg));
+  } else { fallbackCopy(text,msg); }
+  function fallbackCopy(t,m){
+    const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');toast('복사 완료',m,'var(--success)');}catch(e){prompt('키를 복사하세요:',t);}
+    document.body.removeChild(ta);
+  }
+}
 function deleteKey(key){if(!confirm('키를 삭제하시겠습니까?'))return;fetch('/api/admin/keys/'+key+'/delete',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success){toast('삭제','키가 삭제되었습니다','var(--success)');loadKeys();}});}
-function toggleKeyPurchase(){fetch('/api/admin/key-purchase/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!{{ true if key_purchase_enabled else 'false'}}})}).then(r=>r.json()).then(data=>{if(data.success)location.reload();});}
+function toggleKeyPurchase(){
+  const btn = document.getElementById('toggleKeyBtn');
+  const currentEnabled = btn.getAttribute('data-enabled') === 'true';
+  fetch('/api/admin/key-purchase/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:!currentEnabled})}).then(r=>r.json()).then(data=>{if(data.success)location.reload();});
+}
 function copyKey(key){
   if(navigator.clipboard&&navigator.clipboard.writeText&&window.isSecureContext){
     navigator.clipboard.writeText(key).then(()=>toast('복사 완료','키가 복사되었습니다','var(--success)')).catch(()=>fallbackCopy(key));
