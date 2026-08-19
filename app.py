@@ -529,6 +529,7 @@ def get_order(order_id):
 
 @app.route("/api/process", methods=["POST"])
 def process_order_direct():
+    """주문 처리 - Render 무료 플랜에서 백그라운드 스레드가 동작하지 않아 동기식으로 처리"""
     data = request.json
     order_id = data.get("order_id", "").strip()
     orders = load_orders()
@@ -538,50 +539,48 @@ def process_order_direct():
     order["status"] = "processing"
     save_orders(orders)
     add_log("충전 시작", f"주문: {order_id} / 이름: {order['buyer_name']}", f"아이템 수: {len(order['items'])}")
-    def process_background():
-        try:
-            bcsfe_items = []
-            for item in order["items"]:
-                for _ in range(item["quantity"]):
-                    entry = {"type": item["type"], "amount": item.get("amount", 0)}
-                    if item.get("needs_cat_id"):
-                        entry["cat_id"] = item.get("cat_id", -1)
-                    if item.get("needs_levels"):
-                        entry["base_level"] = item.get("base_level", -1)
-                        entry["plus_level"] = item.get("plus_level", -1)
-                    if item.get("needs_custom_amount"):
-                        entry["amount"] = item.get("amount", 0)
-                    if item.get("chapter_id"):
-                        entry["chapter_id"] = item.get("chapter_id", 0)
-                    bcsfe_items.append(entry)
-            print(f"[APP] 처리 시작: {order['id']} / 이름: {order['buyer_name']}")
-            success, new_tc, new_cc, error, results = process_all_items(
-                order["transfer_code"], order["confirmation_code"], bcsfe_items
-            )
-            order["status"] = "completed" if success else "failed"
-            order["result"] = {
-                "success": success,
-                "new_transfer_code": new_tc,
-                "new_confirmation_code": new_cc,
-                "error": error,
-                "details": results
-            }
-            if success:
-                add_log("충전 완료", f"주문: {order_id} / 이름: {order['buyer_name']}", f"새 전송코드: {new_tc} / 새 인증번호: {new_cc}")
-            else:
-                add_log("충전 실패", f"주문: {order_id} / 이름: {order['buyer_name']}", f"오류: {error}")
-        except Exception as e:
-            print(f"[APP] 예외: {e}")
-            import traceback
-            traceback.print_exc()
-            order["status"] = "failed"
-            order["result"] = {"success": False, "error": str(e), "details": []}
-            add_log("충전 오류", f"주문: {order_id} / 이름: {order['buyer_name']}", f"예외: {str(e)}")
-        order["completed_at"] = datetime.now().isoformat()
-        save_orders(orders)
-    thread = threading.Thread(target=process_background)
-    thread.start()
-    return jsonify({"message": "처리 시작!", "order_id": order["id"]})
+    
+    try:
+        bcsfe_items = []
+        for item in order["items"]:
+            for _ in range(item["quantity"]):
+                entry = {"type": item["type"], "amount": item.get("amount", 0)}
+                if item.get("needs_cat_id"):
+                    entry["cat_id"] = item.get("cat_id", -1)
+                if item.get("needs_levels"):
+                    entry["base_level"] = item.get("base_level", -1)
+                    entry["plus_level"] = item.get("plus_level", -1)
+                if item.get("needs_custom_amount"):
+                    entry["amount"] = item.get("amount", 0)
+                if item.get("chapter_id"):
+                    entry["chapter_id"] = item.get("chapter_id", 0)
+                bcsfe_items.append(entry)
+        print(f"[APP] 처리 시작: {order['id']} / 이름: {order['buyer_name']}")
+        success, new_tc, new_cc, error, results = process_all_items(
+            order["transfer_code"], order["confirmation_code"], bcsfe_items
+        )
+        order["status"] = "completed" if success else "failed"
+        order["result"] = {
+            "success": success,
+            "new_transfer_code": new_tc,
+            "new_confirmation_code": new_cc,
+            "error": error,
+            "details": results
+        }
+        if success:
+            add_log("충전 완료", f"주문: {order_id} / 이름: {order['buyer_name']}", f"새 전송코드: {new_tc} / 새 인증번호: {new_cc}")
+        else:
+            add_log("충전 실패", f"주문: {order_id} / 이름: {order['buyer_name']}", f"오류: {error}")
+    except Exception as e:
+        print(f"[APP] 예외: {e}")
+        import traceback
+        traceback.print_exc()
+        order["status"] = "failed"
+        order["result"] = {"success": False, "error": str(e), "details": []}
+        add_log("충전 오류", f"주문: {order_id} / 이름: {order['buyer_name']}", f"예외: {str(e)}")
+    order["completed_at"] = datetime.now().isoformat()
+    save_orders(orders)
+    return jsonify({"message": "처리 완료!", "order_id": order["id"], "status": order["status"]})
 
 # 관리자
 @app.route("/admin/panel", methods=["GET", "POST"])
