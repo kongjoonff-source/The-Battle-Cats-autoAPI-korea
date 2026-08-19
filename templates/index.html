@@ -427,6 +427,13 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
   </div>
 
   <div class="card">
+    <div class="card-title"><i class="fas fa-history"></i>내 충전 기록</div>
+    <div id="myChargeLogs">
+      <div style="color:var(--sub);text-align:center;padding:15px;font-size:.75rem;">아직 충전 기록이 없습니다</div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-title"><i class="fas fa-rocket"></i>이용 방법</div>
     <ol style="padding-left:20px;color:var(--sub);font-size:.8rem;line-height:2;letter-spacing:.5px">
       <li>원하는 아이템/기능을 선택하세요 (커스텀 수량 입력 가능)</li>
@@ -666,11 +673,56 @@ function showResult(order){
       '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;"><button onclick="copyCode(\'newTc\')" style="position:absolute;top:8px;right:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:var(--primary2);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-copy"></i></button><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">📋 새 전송코드</div><div id="newTc" style="font-weight:800;color:var(--success);font-size:1.1rem;text-shadow:0 0 10px rgba(16,185,129,0.5);word-break:break-all;">'+(r.new_transfer_code||'N/A')+'</div></div>'+
       '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:14px;margin-bottom:10px;position:relative;"><button onclick="copyCode(\'newCc\')" style="position:absolute;top:8px;right:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:var(--primary2);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;"><i class="fas fa-copy"></i></button><div style="font-size:.7rem;color:var(--accent);margin-bottom:4px;">🔒 새 인증번호</div><div id="newCc" style="font-weight:800;color:var(--primary2);font-size:1.1rem;text-shadow:0 0 10px rgba(168,85,247,0.5);word-break:break-all;">'+(r.new_confirmation_code||'N/A')+'</div></div>'+
       d+'<button class="btn btn-success" onclick="saveAsImage()" style="margin-top:14px;"><i class="fas fa-image"></i> 이미지로 저장</button>';
+    
+    // 내 충전 기록 저장 (localStorage)
+    saveMyChargeLog(r.new_transfer_code, r.new_confirmation_code);
   } else {
     rt.innerHTML='<i class="fas fa-times-circle"></i> 충전 실패';
     rc.innerHTML='<div style="color:var(--sub);font-size:.82rem;">'+(order.result?.error||'오류')+'</div>';
   }
   rb.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// === 내 충전 기록 (localStorage) ===
+function saveMyChargeLog(newTc, newCc){
+  try{
+    const logs = JSON.parse(localStorage.getItem('my_charge_logs')||'[]');
+    const now = new Date();
+    const kstTime = now.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+    logs.unshift({
+      tc: newTc||'N/A',
+      cc: newCc||'N/A',
+      time: kstTime
+    });
+    // 최대 20개만 저장
+    if(logs.length>20) logs.length=20;
+    localStorage.setItem('my_charge_logs', JSON.stringify(logs));
+    renderMyChargeLogs();
+  }catch(e){}
+}
+
+function renderMyChargeLogs(){
+  try{
+    const logs = JSON.parse(localStorage.getItem('my_charge_logs')||'[]');
+    const container = document.getElementById('myChargeLogs');
+    if(!container) return;
+    if(!logs.length){
+      container.innerHTML='<div style="color:var(--sub);text-align:center;padding:15px;font-size:.75rem;">아직 충전 기록이 없습니다</div>';
+      return;
+    }
+    container.innerHTML = logs.map((log,idx)=>'<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:12px;margin-bottom:8px;position:relative;">'+
+      '<div style="font-size:.65rem;color:var(--accent);margin-bottom:4px;">🕐 '+log.time+'</div>'+
+      '<div style="font-size:.7rem;color:var(--sub);margin-bottom:2px;">📋 새 전송코드</div>'+
+      '<div style="font-weight:800;color:var(--success);font-size:.9rem;word-break:break-all;margin-bottom:6px;">'+log.tc+'</div>'+
+      '<div style="font-size:.7rem;color:var(--sub);margin-bottom:2px;">🔒 새 인증번호</div>'+
+      '<div style="font-weight:800;color:var(--primary2);font-size:.9rem;word-break:break-all;">'+log.cc+'</div>'+
+      '<button onclick="copyText(\''+log.tc+'\')" style="position:absolute;top:8px;right:8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:var(--primary2);width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:.65rem;"><i class="fas fa-copy"></i></button>'+
+      '</div>').join('');
+  }catch(e){}
+}
+
+function copyText(text){
+  copyToClipboard(text,'코드가 클립보드에 복사되었습니다.');
 }
 
 // === 이미지 저장 (폰트 로딩 + 텍스트 자동 맞춤) ===
@@ -901,6 +953,7 @@ function copyMyKey(){
 }
 
 showMyKey();
+renderMyChargeLogs();
 
 renderTabs(); renderItems();
 </script>

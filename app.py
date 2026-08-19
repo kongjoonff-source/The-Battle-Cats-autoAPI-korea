@@ -6,12 +6,18 @@ import secrets
 import time
 import hashlib
 from datetime import datetime, timedelta
+import zoneinfo
 from bcsfe_handler_full import process_all_items
 from config import (
     DATA_DIR, SERVER_HOST, SERVER_PORT, SERVER_DEBUG,
     ADMIN_PASSWORD, ADMIN_ALLOWED_IPS, SECRET_KEY,
     KEY_PURCHASE_ENABLED, KEY_PRICES
 )
+
+# 한국 시간대 설정 (Render 서버는 UTC 사용)
+KST = zoneinfo.ZoneInfo("Asia/Seoul")
+def now_kst():
+    return datetime.now(KST)
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -752,6 +758,27 @@ def admin_delete_key(key):
     save_access_keys(keys)
     add_log("키 삭제", f"키: {key[:8]}...", "")
     return jsonify({"success": True, "message": "키가 삭제되었습니다"})
+
+@app.route("/api/admin/keys/delete-expired", methods=["POST"])
+def admin_delete_expired_keys():
+    """만료된 키 일괄 삭제"""
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    keys = load_access_keys()
+    now = datetime.now()
+    expired_keys = []
+    active_keys = []
+    for k in keys:
+        try:
+            if k.get('expires_at') and datetime.fromisoformat(k['expires_at']) < now:
+                expired_keys.append(k)
+            else:
+                active_keys.append(k)
+        except (ValueError, TypeError):
+            active_keys.append(k)
+    save_access_keys(active_keys)
+    add_log("키 일괄 삭제", f"만료된 키 {len(expired_keys)}개 삭제", "")
+    return jsonify({"success": True, "deleted_count": len(expired_keys), "message": f"만료된 키 {len(expired_keys)}개가 삭제되었습니다"})
 
 # 활동 로그
 @app.route("/api/admin/logs")

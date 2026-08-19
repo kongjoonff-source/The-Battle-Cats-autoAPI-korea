@@ -267,7 +267,7 @@ tr:hover{background:rgba(168,85,247,0.05)}
     <div id="logList" class="scroll-box">불러오는 중...</div>
   </div>
   <div class="card">
-    <div class="card-title"><span><i class="fas fa-key"></i>접근 키 관리</span><button class="btn btn-primary" onclick="generateKey()" style="font-size:.72rem;padding:6px 12px">키 생성</button></div>
+    <div class="card-title"><span><i class="fas fa-key"></i>접근 키 관리</span><div style="display:flex;gap:8px"><button class="btn btn-danger" onclick="deleteExpiredKeys()" style="font-size:.72rem;padding:6px 12px">만료 키 일괄 삭제</button><button class="btn btn-primary" onclick="generateKey()" style="font-size:.72rem;padding:6px 12px">키 생성</button></div></div>
     <div id="keyList" class="scroll-box" style="max-height:400px">불러오는 중...</div>
   </div>
   <div class="card">
@@ -413,6 +413,13 @@ function copyToClipboard(text,msg){
   }
 }
 function deleteKey(key){if(!confirm('키를 삭제하시겠습니까?'))return;fetch('/api/admin/keys/'+key+'/delete',{method:'POST'}).then(r=>r.json()).then(data=>{if(data.success){toast('삭제','키가 삭제되었습니다','var(--success)');loadKeys();}});}
+function deleteExpiredKeys(){
+  if(!confirm('만료된 키를 모두 삭제하시겠습니까?'))return;
+  fetch('/api/admin/keys/delete-expired',{method:'POST'}).then(r=>r.json()).then(data=>{
+    if(data.success){toast('삭제 완료',data.message,'var(--success)');loadKeys();}
+    else{toast('오류',data.error||'삭제 실패','var(--danger)');}
+  });
+}
 function toggleKeyPurchase(){
   const btn = document.getElementById('toggleKeyBtn');
   const currentEnabled = btn.getAttribute('data-enabled') === 'true';
