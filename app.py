@@ -201,9 +201,14 @@ def is_key_valid(key, device_id=None):
                         return False, None, "device_mismatch"
                 return True, k, None
             # 활성화된 키는 만료 시간 확인
-            expires_at = datetime.fromisoformat(k["expires_at"])
-            if datetime.now() >= expires_at:
-                return False, None, "expired"
+            if not k.get("expires_at"):
+                return True, k, None
+            try:
+                expires_at = datetime.fromisoformat(k["expires_at"])
+                if datetime.now() >= expires_at:
+                    return False, None, "expired"
+            except (ValueError, TypeError):
+                return True, k, None
             if device_id:
                 bound_device = k.get("device_id")
                 if bound_device and bound_device != device_id:
@@ -611,7 +616,10 @@ def show_admin_dashboard():
     logs = load_activity_log()
     now = datetime.now()
     for k in access_keys:
-        k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now
+        try:
+            k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now if k.get('expires_at') else False
+        except (ValueError, TypeError):
+            k['is_expired'] = False
     total_orders = len(orders)
     completed_orders = len([o for o in orders if o.get('status') == 'completed'])
     pending_orders = len([o for o in orders if o.get('status') == 'pending'])
@@ -684,7 +692,10 @@ def admin_list_keys():
     keys = load_access_keys()
     now = datetime.now()
     for k in keys:
-        k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now
+        try:
+            k['is_expired'] = datetime.fromisoformat(k['expires_at']) < now if k.get('expires_at') else False
+        except (ValueError, TypeError):
+            k['is_expired'] = False
     return jsonify(keys)
 
 @app.route("/api/admin/keys/generate", methods=["POST"])
