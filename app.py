@@ -271,17 +271,17 @@ def get_item_definitions():
         {"id": "np_custom", "type": "np", "name": "NP 커스텀", "icon": "🧬", "category": "커스텀", "price": 0, "needs_custom_amount": True},
         {"id": "user_rank_calc", "type": "user_rank", "name": "유저랭크 재계산", "icon": "📊", "category": "기타기능", "price": 0},
         {"id": "unlock_equip", "type": "unlock_equip", "name": "장비 메뉴 해제", "icon": "🔓", "category": "기타기능", "price": 0},
-        # ===== BCSFE 스테이지 클리어 =====
-        {"id": "clear_chapter_1", "type": "clear_stages", "name": "제1장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 1},
-        {"id": "clear_chapter_2", "type": "clear_stages", "name": "제2장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 2},
-        {"id": "clear_chapter_3", "type": "clear_stages", "name": "제3장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 3},
-        {"id": "clear_chapter_4", "type": "clear_stages", "name": "미래편 제1장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 4},
-        {"id": "clear_chapter_5", "type": "clear_stages", "name": "미래편 제2장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 5},
-        {"id": "clear_chapter_6", "type": "clear_stages", "name": "미래편 제3장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 6},
-        {"id": "clear_chapter_7", "type": "clear_stages", "name": "우주편 제1장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 7},
-        {"id": "clear_chapter_8", "type": "clear_stages", "name": "우주편 제2장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 8},
-        {"id": "clear_chapter_9", "type": "clear_stages", "name": "우주편 제3장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 9},
-        {"id": "clear_all_stages", "type": "clear_all_stages", "name": "전체 스테이지 클리어", "icon": "🏆", "category": "스테이지", "price": 0},
+        # ===== BCSFE 스테이지 클리어 (VIP 전용) =====
+        {"id": "clear_chapter_1", "type": "clear_stages", "name": "제1장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 1, "vip_only": True},
+        {"id": "clear_chapter_2", "type": "clear_stages", "name": "제2장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 2, "vip_only": True},
+        {"id": "clear_chapter_3", "type": "clear_stages", "name": "제3장 클리어", "icon": "🌍", "category": "스테이지", "price": 0, "chapter_id": 3, "vip_only": True},
+        {"id": "clear_chapter_4", "type": "clear_stages", "name": "미래편 제1장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 4, "vip_only": True},
+        {"id": "clear_chapter_5", "type": "clear_stages", "name": "미래편 제2장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 5, "vip_only": True},
+        {"id": "clear_chapter_6", "type": "clear_stages", "name": "미래편 제3장 클리어", "icon": "🚀", "category": "스테이지", "price": 0, "chapter_id": 6, "vip_only": True},
+        {"id": "clear_chapter_7", "type": "clear_stages", "name": "우주편 제1장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 7, "vip_only": True},
+        {"id": "clear_chapter_8", "type": "clear_stages", "name": "우주편 제2장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 8, "vip_only": True},
+        {"id": "clear_chapter_9", "type": "clear_stages", "name": "우주편 제3장 클리어", "icon": "🌌", "category": "스테이지", "price": 0, "chapter_id": 9, "vip_only": True},
+        {"id": "clear_all_stages", "type": "clear_all_stages", "name": "전체 스테이지 클리어", "icon": "🏆", "category": "스테이지", "price": 0, "vip_only": True},
     ]
 
 # 기기 ID 쿠키 자동 설정

@@ -283,6 +283,37 @@ body::after{
 @keyframes iconPop{0%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.4) rotate(15deg)}100%{transform:scale(1.1) rotate(-5deg)}}
 .item-icon{font-size:2.2rem;margin-bottom:8px;display:inline-block;transition:all .3s;position:relative;z-index:1}
 .item-name{font-weight:700;font-size:.75rem;margin-bottom:4px;line-height:1.3;position:relative;z-index:1;letter-spacing:.5px}
+/* === VIP 전용 아이템 (금색) === */
+.item-card.vip-only{
+  background:linear-gradient(145deg,rgba(251,191,36,0.18),rgba(124,58,237,0.12)) !important;
+  border:1.5px solid rgba(251,191,36,0.5) !important;
+  box-shadow:0 0 20px rgba(251,191,36,0.15) !important;
+}
+.item-card.vip-only .item-icon{
+  filter:drop-shadow(0 0 8px rgba(251,191,36,0.5));
+}
+.item-card.vip-only .item-name{
+  color:#fbbf24 !important;
+}
+.item-card.vip-only.selected{
+  border-color:#fbbf24 !important;
+  box-shadow:0 0 25px rgba(251,191,36,0.3) !important;
+}
+.vip-badge{
+  position:absolute;top:6px;left:6px;z-index:5;
+  font-size:.55rem;font-weight:800;
+  padding:2px 6px;border-radius:8px;
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);
+  color:#000;letter-spacing:.5px;
+  box-shadow:0 0 10px rgba(251,191,36,0.5);
+}
+.vip-legend{
+  display:flex;align-items:center;gap:6px;margin-bottom:10px;
+  font-size:.7rem;color:var(--sub);padding:6px 10px;
+  background:rgba(251,191,36,0.08);
+  border:1px solid rgba(251,191,36,0.2);
+  border-radius:8px;flex-wrap:wrap;
+}
 .item-qty{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;position:relative;z-index:1}
 .item-qty button{
   width:26px;height:26px;border-radius:50%;
@@ -445,6 +476,7 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 
   <div class="card">
     <div class="card-title"><i class="fas fa-cart-shopping"></i>아이템 선택</div>
+    <div class="vip-legend"><span style="display:inline-block;width:10px;height:10px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border-radius:3px;box-shadow:0 0 6px rgba(251,191,36,0.5);"></span> <b style="color:#fbbf24;">금색 카드 = VIP 전용</b> 아이템입니다 (일반 키로 사용 불가)</div>
     <div class="tabs" id="categoryTabs"></div>
     <div class="items-grid" id="itemsGrid"></div>
     <div class="cart-items" id="cartItems"></div>
@@ -466,6 +498,7 @@ input:focus + .input-icon{color:var(--accent);filter:drop-shadow(0 0 6px rgba(6,
 </div>
 
 <script>
+// Jinja 템플릿: 서버에서 items 목록을 주입합니다
 const items = {{ items|tojson }};
 let cart = {};
 let currentTab = '통조림';
@@ -554,6 +587,8 @@ function renderItems(){
   cont.innerHTML = filtered.map((item,idx) => {
     const qty = cart[item.id] || 0;
     const selected = qty > 0 ? 'selected' : '';
+    const isVip = !!item.vip_only;
+    const vipClass = isVip ? 'vip-only' : '';
     let extraInputs = '';
     if (selected){
       if (item.needs_cat_id) extraInputs += `<div class="cat-inputs"><label>고양이 ID</label><input type="number" value="${cart[item.id+'_catId']||''}" oninput="saveCatId('${item.id}',this.value)" onclick="event.stopPropagation()"></div>`;
@@ -563,9 +598,11 @@ function renderItems(){
       }
       if (item.needs_custom_amount) extraInputs += `<div class="cat-inputs"><label>수량 입력</label><input type="number" value="${cart[item.id+'_customAmt']||''}" placeholder="예: 5000" oninput="saveCustomAmt('${item.id}',this.value)" onclick="event.stopPropagation()"></div>`;
     }
-    return `<div class="item-card ${selected}" onclick="toggleItem('${item.id}',event)" data-id="${item.id}" style="animation-delay:${idx*0.03}s">
+    return `<div class="item-card ${selected} ${vipClass}" onclick="toggleItem('${item.id}',event)" data-id="${item.id}" style="animation-delay:${idx*0.03}s">
+      ${isVip?'<div class="vip-badge">👑 VIP</div>':''}
       <div class="item-icon">${item.icon}</div>
       <div class="item-name">${item.name}</div>
+      ${isVip&&!selected?'<div style="position:absolute;bottom:6px;right:8px;font-size:.55rem;font-weight:700;color:rgba(251,191,36,0.7);">VIP 전용</div>':''}
       ${selected?`<div style="position:absolute;top:6px;right:6px;background:var(--accent);color:#000;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:20px;box-shadow:0 0 10px rgba(6,182,238,0.6)">✓ ${qty}</div>`:''}
       ${selected?`<div class="item-qty"><button onclick="event.stopPropagation();changeQty('${item.id}',-1,event)">−</button><span>${qty}</span><button onclick="event.stopPropagation();changeQty('${item.id}',1,event)">+</button></div>`:''}
       ${extraInputs}
@@ -683,19 +720,17 @@ function showResult(order){
   rb.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-// === 내 충전 기록 (localStorage) ===
+// === 내 충전 기록 (localStorage) - 최근 1개만 저장 ===
 function saveMyChargeLog(newTc, newCc){
   try{
-    const logs = JSON.parse(localStorage.getItem('my_charge_logs')||'[]');
     const now = new Date();
     const kstTime = now.toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
-    logs.unshift({
+    // 최근 1개만 저장 (이전 기록은 삭제)
+    const logs = [{
       tc: newTc||'N/A',
       cc: newCc||'N/A',
       time: kstTime
-    });
-    // 최대 20개만 저장
-    if(logs.length>20) logs.length=20;
+    }];
     localStorage.setItem('my_charge_logs', JSON.stringify(logs));
     renderMyChargeLogs();
   }catch(e){}
@@ -935,7 +970,13 @@ function showMyKey(){
         vipBadge.textContent = '👑 VIP';
         document.getElementById('myKeyBox').appendChild(vipBadge);
       }
-      // 내 충전 기록 키 연동 (키 삭제 시 초기화)
+      // 내 충전 기록 키 연동 (키 변경 시 초기화)
+      const prevKey = localStorage.getItem('my_key');
+      if(prevKey && prevKey !== data.key){
+        // 키가 변경되면 충전 기록 초기화
+        localStorage.removeItem('my_charge_logs');
+        renderMyChargeLogs();
+      }
       localStorage.setItem('my_key', data.key);
     } else {
       // 키가 없으면 충전 기록 초기화
