@@ -271,6 +271,10 @@ tr:hover{background:rgba(168,85,247,0.05)}
     <div id="keyList" class="scroll-box" style="max-height:400px">불러오는 중...</div>
   </div>
   <div class="card">
+    <div class="card-title"><span><i class="fas fa-shield-halved"></i>키 권한 설정</span><button class="btn btn-success" onclick="savePermissions()" style="font-size:.72rem;padding:6px 12px">권한 저장</button></div>
+    <div id="permissionsContainer">불러오는 중...</div>
+  </div>
+  <div class="card">
     <div class="card-title"><span><i class="fas fa-shopping-cart"></i>주문 내역</span></div>
     <div class="scroll-box" style="max-height:400px">
       <table><thead><tr><th>주문ID</th><th>이름</th><th>상태</th><th>아이템</th><th>시간</th></tr></thead><tbody>
@@ -399,8 +403,9 @@ function generateKey(){
   const duration=prompt('키 기간:','7');if(!duration)return;
   const unit=prompt('단위 (day=일, hour=시간):','day')||'day';
   const count=prompt('생성 개수 (1~100):','1')||'1';
+  const keyType=prompt('키 타입 (normal=일반, vip=VIP):','normal')||'normal';
   const label=prompt('라벨 (선택):','')||'';
-  fetch('/api/admin/keys/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({duration:parseInt(duration),unit:unit,count:parseInt(count),label})})
+  fetch('/api/admin/keys/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({duration:parseInt(duration),unit:unit,count:parseInt(count),key_type:keyType,label})})
   .then(r=>r.json()).then(data=>{
     if(data.success){
       toast('생성 완료',data.count+'개의 키가 생성되었습니다','var(--success)');
@@ -446,7 +451,76 @@ function copyKey(key){
   }
 }
 
-loadCoupons();loadLogs();loadKeys();
+// === 키 권한 설정 ===
+let permissionsData = null;
+function loadPermissions(){
+  fetch('/api/admin/key-permissions').then(r=>r.json()).then(data=>{
+    permissionsData = data;
+    renderPermissions();
+  }).catch(()=>{
+    document.getElementById('permissionsContainer').innerHTML='<p style="color:var(--danger);text-align:center;padding:20px">권한 설정을 불러오지 못했습니다</p>';
+  });
+}
+
+const PERM_LABELS = {
+  catfood: '🥫 통조림',
+  xp: '✨ XP',
+  tickets: '🎟️ 티켓',
+  cats: '🐱 고양이',
+  stages: '🗺️ 스테이지 클리어',
+  custom: '⚙️ 커스텀',
+  other: '🔧 기타기능'
+};
+
+function renderPermissions(){
+  const container = document.getElementById('permissionsContainer');
+  if(!permissionsData) return;
+  
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+  
+  // 일반 키
+  html += '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(168,85,247,0.3);border-radius:12px;padding:16px;">';
+  html += '<div style="font-weight:800;color:var(--accent);margin-bottom:12px;font-size:.9rem;">🔑 일반 키 권한</div>';
+  for(const [key,label] of Object.entries(PERM_LABELS)){
+    const checked = permissionsData.normal[key] ? 'checked' : '';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,0.05);border-radius:8px;">';
+    html += '<input type="checkbox" id="perm_normal_'+key+'" '+checked+' style="width:16px;height:16px;accent-color:var(--accent);">';
+    html += '<label for="perm_normal_'+key+'" style="font-size:.75rem;cursor:pointer;flex:1;">'+label+'</label>';
+    html += '</div>';
+  }
+  html += '</div>';
+  
+  // VIP 키
+  html += '<div style="background:rgba(0,0,0,0.3);border:1.5px solid rgba(251,191,36,0.4);border-radius:12px;padding:16px;">';
+  html += '<div style="font-weight:800;color:var(--gold);margin-bottom:12px;font-size:.9rem;">👑 VIP 키 권한</div>';
+  for(const [key,label] of Object.entries(PERM_LABELS)){
+    const checked = permissionsData.vip[key] ? 'checked' : '';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,0.05);border-radius:8px;">';
+    html += '<input type="checkbox" id="perm_vip_'+key+'" '+checked+' style="width:16px;height:16px;accent-color:var(--gold);">';
+    html += '<label for="perm_vip_'+key+'" style="font-size:.75rem;cursor:pointer;flex:1;">'+label+'</label>';
+    html += '</div>';
+  }
+  html += '</div>';
+  
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function savePermissions(){
+  if(!permissionsData) return;
+  const data = {normal:{}, vip:{}};
+  for(const key of Object.keys(PERM_LABELS)){
+    data.normal[key] = document.getElementById('perm_normal_'+key).checked;
+    data.vip[key] = document.getElementById('perm_vip_'+key).checked;
+  }
+  fetch('/api/admin/key-permissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+  .then(r=>r.json()).then(res=>{
+    if(res.success){toast('저장 완료','권한 설정이 저장되었습니다','var(--success)');}
+    else{toast('오류',res.error||'저장 실패','var(--danger)');}
+  });
+}
+
+loadCoupons();loadLogs();loadKeys();loadPermissions();
 </script>
 </body>
 </html>

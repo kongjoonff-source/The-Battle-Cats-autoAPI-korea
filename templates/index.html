@@ -927,6 +927,21 @@ function showMyKey(){
       if(data.in_use){
         document.getElementById('inUseBadge').style.display='inline-block';
       }
+      // VIP 키 배지 표시
+      if(data.key_type === 'vip'){
+        const vipBadge = document.createElement('span');
+        vipBadge.id = 'vipBadge';
+        vipBadge.style.cssText = 'font-size:.58rem;font-weight:800;padding:2px 8px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#000;box-shadow:0 0 12px rgba(251,191,36,0.6);letter-spacing:.5px;';
+        vipBadge.textContent = '👑 VIP';
+        document.getElementById('myKeyBox').appendChild(vipBadge);
+      }
+      // 내 충전 기록 키 연동 (키 삭제 시 초기화)
+      localStorage.setItem('my_key', data.key);
+    } else {
+      // 키가 없으면 충전 기록 초기화
+      localStorage.removeItem('my_charge_logs');
+      localStorage.removeItem('my_key');
+      renderMyChargeLogs();
     }
   }).catch(()=>{});
 }

@@ -453,7 +453,8 @@ def my_key():
                 "in_use": bool(key_data.get("device_id")),
                 "device_info": key_data.get("device_info", ""),
                 "bound_at": key_data.get("bound_at", ""),
-                "expires_at": key_data.get("expires_at", "")
+                "expires_at": key_data.get("expires_at", ""),
+                "key_type": key_data.get("key_type", "normal")
             })
     return jsonify({"key": ""})
 
@@ -487,6 +488,17 @@ def submit_order():
         return jsonify({"error": "모든 필드를 입력해주세요"}), 400
     if not selected_items:
         return jsonify({"error": "아이템을 선택해주세요"}), 400
+    
+    # 키 타입 확인 (권한 체크)
+    user_key = session.get('access_key', '')
+    key_type = "normal"
+    if user_key:
+        keys = load_access_keys()
+        for k in keys:
+            if k["key"] == user_key:
+                key_type = k.get("key_type", "normal")
+                break
+    
     items_def = get_item_definitions()
     item_details = []
     for sel in selected_items:
@@ -494,6 +506,9 @@ def submit_order():
         quantity = int(sel.get("quantity", 1))
         match = next((i for i in items_def if i["id"] == item_id), None)
         if match:
+            # 권한 체크
+            if not check_item_permission(match["type"], key_type):
+                return jsonify({"error": f"'{match['name']}'은(는) {('VIP' if key_type == 'vip' else '일반')}키에서 사용할 수 없습니다"}), 403
             detail = {**match, "quantity": quantity}
             if match.get("needs_cat_id"):
                 detail["cat_id"] = int(sel.get("cat_id", -1))
@@ -705,7 +720,7 @@ def admin_list_keys():
 
 @app.route("/api/admin/keys/generate", methods=["POST"])
 def admin_generate_key():
-    """키 생성 API - 일/시간 단위, 여러 개 한번에 생성 가능
+    """키 생성 API - 일/시간 단위, 여러 개 한번에 생성, 일반/VIP 선택
     
     생성된 키는 사용(활성화) 전까지 시간이 흐르지 않음.
     키를 사용하면 그때부터 expires_at이 설정됨.
@@ -717,11 +732,14 @@ def admin_generate_key():
     unit = data.get("unit", "day")  # "day" or "hour"
     count = int(data.get("count", 1))
     label = data.get("label", "")
+    key_type = data.get("key_type", "normal")  # "normal" or "vip"
     
     if duration <= 0:
         return jsonify({"error": "기간은 1 이상이어야 합니다"}), 400
     if count <= 0 or count > 100:
         return jsonify({"error": "생성 개수는 1~100개 사이여야 합니다"}), 400
+    if key_type not in ["normal", "vip"]:
+        return jsonify({"error": "키 타입은 normal 또는 vip여야 합니다"}), 400
     
     created_at = datetime.now()
     keys = load_access_keys()
@@ -737,6 +755,7 @@ def admin_generate_key():
             "unit": unit,
             "activated_at": None,  # 아직 활성화 안됨
             "label": label,
+            "key_type": key_type,  # "normal" or "vip"
             "device_id": None,
             "bound_at": None,
             "device_info": None
@@ -746,8 +765,102 @@ def admin_generate_key():
     
     save_access_keys(keys)
     unit_text = "시간" if unit == "hour" else "일"
-    add_log("키 생성", f"키 {count}개 생성", f"기간: {duration}{unit_text} 라벨: {label}")
+    type_text = "VIP" if key_type == "vip" else "일반"
+    add_log("키 생성", f"{type_text}키 {count}개 생성", f"기간: {duration}{unit_text} 라벨: {label}")
     return jsonify({"success": True, "keys": generated_keys, "count": count})
+
+# ===== 키 권한 설정 =====
+KEY_PERMISSIONS_FILE = os.path.join(DATA_DIR, "key_permissions.json")
+
+def load_key_permissions():
+    """키 타입별 권한 설정 로드"""
+    defaults = {
+        "normal": {
+            "catfood": True,
+            "xp": True,
+            "tickets": True,
+            "cats": True,
+            "stages": False,  # 스테이지 클리어는 기본적으로 VIP 전용
+            "custom": True,
+            "other": True
+        },
+        "vip": {
+            "catfood": True,
+            "xp": True,
+            "tickets": True,
+            "cats": True,
+            "stages": True,
+            "custom": True,
+            "other": True
+        }
+    }
+    if os.path.exists(KEY_PERMISSIONS_FILE):
+        try:
+            with open(KEY_PERMISSIONS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                for kt in ["normal", "vip"]:
+                    if kt in saved:
+                        defaults[kt].update(saved[kt])
+        except:
+            pass
+    return defaults
+
+def save_key_permissions(permissions):
+    with open(KEY_PERMISSIONS_FILE, "w", encoding="utf-8") as f:
+        json.dump(permissions, f, ensure_ascii=False, indent=2)
+
+def get_key_permissions_for_type(key_type):
+    """특정 키 타입의 권한 반환"""
+    perms = load_key_permissions()
+    return perms.get(key_type, perms.get("normal", {}))
+
+def check_item_permission(item_type, key_type):
+    """아이템 타입이 키 타입의 권한에 포함되는지 확인"""
+    perms = get_key_permissions_for_type(key_type)
+    
+    # 카테고리 매핑
+    category_map = {
+        "catfood": ["catfood"],
+        "xp": ["xp"],
+        "tickets": ["rare_ticket", "legend_ticket", "platinum_ticket", "normal_ticket", "platinum_shard", "leadership", "np"],
+        "cats": ["unlock_cat", "unlock_all_cats", "unlock_all_obtainable_cats", "true_form_cat", "true_form_all_cats", "fourth_form_cat", "fourth_form_all_cats", "upgrade_cat", "upgrade_all_cats_max", "upgrade_cat_max", "upgrade_talents_cat", "upgrade_talents_all_cats", "unlock_cat_guide_cat", "unlock_all_cat_guide"],
+        "stages": ["clear_stages", "clear_all_stages"],
+        "custom": ["catfood", "xp", "rare_ticket", "legend_ticket", "platinum_ticket", "normal_ticket", "platinum_shard", "leadership", "np"],
+        "other": ["user_rank", "unlock_equip"]
+    }
+    
+    for category, types in category_map.items():
+        if item_type in types:
+            return perms.get(category, True)
+    
+    return True  # 기본적으로 허용
+
+@app.route("/api/admin/key-permissions", methods=["GET"])
+def admin_get_key_permissions():
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    return jsonify(load_key_permissions())
+
+@app.route("/api/admin/key-permissions", methods=["POST"])
+def admin_save_key_permissions():
+    if not session.get('admin'):
+        return jsonify({"error": "관리자 권한 필요"}), 403
+    data = request.json
+    permissions = load_key_permissions()
+    
+    # normal 권한 업데이트
+    if "normal" in data:
+        for key, value in data["normal"].items():
+            permissions["normal"][key] = bool(value)
+    
+    # vip 권한 업데이트
+    if "vip" in data:
+        for key, value in data["vip"].items():
+            permissions["vip"][key] = bool(value)
+    
+    save_key_permissions(permissions)
+    add_log("권한 설정", "키 권한 설정 변경", "")
+    return jsonify({"success": True, "message": "권한 설정이 저장되었습니다"})
 
 @app.route("/api/admin/keys/<key>/delete", methods=["POST"])
 def admin_delete_key(key):
