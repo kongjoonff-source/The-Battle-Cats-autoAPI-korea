@@ -635,6 +635,14 @@ function saveLevels(id,type,val){cart[id+'_'+type+'Lv']=val; renderCart();}
 function saveCustomAmt(id,val){cart[id+'_customAmt']=val; renderCart();}
 
 function toggleItem(id,e){
+  const item = items.find(i => i.id === id);
+  if (item && item.vip_only){
+    // VIP 전용 아이템 - 키 타입 확인
+    if (!myKeyData || myKeyData.key_type !== 'vip'){
+      toast('이용 불가','VIP키만 이용할수있습니다.','var(--danger)');
+      return;
+    }
+  }
   if (cart[id]){delete cart[id]; delete cart[id+'_catId']; delete cart[id+'_baseLv']; delete cart[id+'_plusLv']; delete cart[id+'_customAmt'];}
   else {cart[id]=1;}
   renderItems(); renderCart(); updateTotal();
