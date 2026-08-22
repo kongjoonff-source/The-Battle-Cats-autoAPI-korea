@@ -299,7 +299,7 @@ def set_device_cookie(response):
 # 접근 키 게이트
 @app.before_request
 def check_access_key():
-    exempt_prefixes = ['/gate', '/api/verify-key', '/api/redeem-coupon', '/static', '/admin', '/api/admin', '/health', '/ping']
+    exempt_prefixes = ['/gate', '/api/verify-key', '/api/redeem-coupon', '/api/items', '/static', '/admin', '/api/admin', '/health', '/ping']
     for prefix in exempt_prefixes:
         if request.path.startswith(prefix):
             return
