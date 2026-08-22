@@ -779,10 +779,10 @@ def load_key_permissions():
             "catfood": True,
             "xp": True,
             "tickets": True,
-            "cats": True,
-            "stages": False,  # 스테이지 클리어는 기본적으로 VIP 전용
-            "custom": True,
-            "other": True
+            "cats": False,  # 일반키는 고양이 기능 사용 불가
+            "stages": False,  # 스테이지 클리어는 VIP 전용
+            "custom": False,  # 일반키는 커스텀 사용 불가
+            "other": False  # 일반키는 기타기능 사용 불가
         },
         "vip": {
             "catfood": True,
