@@ -608,7 +608,7 @@ function renderItems(){
   cont.innerHTML = filtered.map((item,idx) => {
     const qty = cart[item.id] || 0;
     const selected = qty > 0 ? 'selected' : '';
-    const isVip = !!item.vip_only;
+    const isVip = !!item.vip_only || !!item.vip;
     const vipClass = isVip ? 'vip-only' : '';
     let extraInputs = '';
     if (selected){
@@ -636,7 +636,7 @@ function saveCustomAmt(id,val){cart[id+'_customAmt']=val; renderCart();}
 
 function toggleItem(id,e){
   const item = items.find(i => i.id === id);
-  if (item && item.vip_only){
+  if (item && (item.vip_only || item.vip)){
     // VIP 전용 아이템 - 키 타입 확인
     if (!myKeyData || myKeyData.key_type !== 'vip'){
       toast('이용 불가','VIP키만 이용할수있습니다.','var(--danger)');
